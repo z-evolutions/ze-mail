@@ -22,5 +22,7 @@ public class Account
     public bool UnifiedInboxEnabled { get; set; } = false;
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
+    public ICollection<Signature> Signatures { get; set; } = new List<Signature>();
+
     public ICollection<Folder> Folders { get; set; } = new List<Folder>();
 }

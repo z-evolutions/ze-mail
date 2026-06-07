@@ -10,6 +10,7 @@ public class ZeMailDbContext : DbContext
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<Attachment> Attachments => Set<Attachment>();
     public DbSet<PendingOperation> PendingOperations => Set<PendingOperation>();
+    public DbSet<Signature> Signatures => Set<Signature>();
 
     public ZeMailDbContext(DbContextOptions<ZeMailDbContext> options) : base(options) { }
 
@@ -22,6 +23,10 @@ public class ZeMailDbContext : DbContext
             e.HasKey(x => x.Id);
             e.Property(x => x.EmailAddress).IsRequired();
             e.HasMany(x => x.Folders)
+             .WithOne(x => x.Account)
+             .HasForeignKey(x => x.AccountId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Signatures)
              .WithOne(x => x.Account)
              .HasForeignKey(x => x.AccountId)
              .OnDelete(DeleteBehavior.Cascade);
@@ -56,6 +61,12 @@ public class ZeMailDbContext : DbContext
         {
             e.HasKey(x => x.Id);
             e.HasIndex(x => x.AccountId);
+        });
+
+        modelBuilder.Entity<Signature>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => new { x.AccountId, x.IsDefault });
         });
     }
 }

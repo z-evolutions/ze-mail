@@ -8,7 +8,6 @@ namespace ZeMail.UI.ViewModels;
 
 public partial class AccountSetupViewModel : ViewModelBase
 {
-    // ── Wizard-Schritt ───────────────────────────────────────────────────────
     [ObservableProperty]
     private int _currentStep = 1;
 
@@ -16,14 +15,12 @@ public partial class AccountSetupViewModel : ViewModelBase
     public bool IsStep2 => CurrentStep == 2;
     public bool IsStep3 => CurrentStep == 3;
 
-    // ── Schritt 1: Basis ─────────────────────────────────────────────────────
     [ObservableProperty]
     private string _displayName = string.Empty;
 
     [ObservableProperty]
     private string _emailAddress = string.Empty;
 
-    // ── Schritt 2: Server ────────────────────────────────────────────────────
     [ObservableProperty]
     private string _protocol = "IMAP";
 
@@ -48,7 +45,6 @@ public partial class AccountSetupViewModel : ViewModelBase
     [ObservableProperty]
     private bool _unifiedInboxEnabled = true;
 
-    // ── Schritt 3: Status ────────────────────────────────────────────────────
     [ObservableProperty]
     private string _statusMessage = "Bereit zum Verbindungstest.";
 
@@ -58,11 +54,9 @@ public partial class AccountSetupViewModel : ViewModelBase
     [ObservableProperty]
     private bool _testSucceeded = false;
 
-    // ── Events ───────────────────────────────────────────────────────────────
     public event Action? OnSaved;
     public event Action? OnCancelled;
 
-    // ── Navigation ───────────────────────────────────────────────────────────
     partial void OnCurrentStepChanged(int value)
     {
         OnPropertyChanged(nameof(IsStep1));
@@ -72,7 +66,6 @@ public partial class AccountSetupViewModel : ViewModelBase
 
     partial void OnEmailAddressChanged(string value)
     {
-        // Auto-Fill Server-Einstellungen bei bekannten Providern
         var domain = value.Contains('@') ? value.Split('@')[1].ToLower() : "";
         switch (domain)
         {
@@ -125,14 +118,23 @@ public partial class AccountSetupViewModel : ViewModelBase
 
         try
         {
-            await Task.Delay(1500); // Echter Test kommt später
-            TestSucceeded = true;
-            StatusMessage = "✓ Verbindung erfolgreich! Du kannst jetzt speichern.";
+            if (ZeMail.UI.App.Services is null)
+                throw new InvalidOperationException("Services nicht verfügbar.");
+
+            using var scope = ZeMail.UI.App.Services.CreateScope();
+            var tester = scope.ServiceProvider
+                              .GetRequiredService<ZeMail.Core.Interfaces.IAccountTestService>();
+
+            var (success, message) = await tester.TestImapAsync(
+                ImapHost, ImapPort, Username, Password);
+
+            TestSucceeded = success;
+            StatusMessage = message;
         }
         catch (Exception ex)
         {
             TestSucceeded = false;
-            StatusMessage = $"✗ Fehler: {ex.Message}";
+            StatusMessage = $"✗ {ex.Message}";
         }
         finally
         {
@@ -141,7 +143,7 @@ public partial class AccountSetupViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void Save()
+    private async Task SaveAsync()
     {
         if (!TestSucceeded) return;
 
@@ -149,27 +151,42 @@ public partial class AccountSetupViewModel : ViewModelBase
         {
             using var scope = ZeMail.UI.App.Services.CreateScope();
             var db = scope.ServiceProvider
-                        .GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
+                          .GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
 
             var account = new ZeMail.Core.Entities.Account
             {
-                Name             = DisplayName,
-                EmailAddress     = EmailAddress,
-                ImapHost         = ImapHost,
-                ImapPort         = ImapPort,
-                SmtpHost         = SmtpHost,
-                SmtpPort         = SmtpPort,
-                Username         = Username,
-                Password         = Password,
-                Protocol         = Protocol,
+                Name                = DisplayName,
+                EmailAddress        = EmailAddress,
+                ImapHost            = ImapHost,
+                ImapPort            = ImapPort,
+                SmtpHost            = SmtpHost,
+                SmtpPort            = SmtpPort,
+                Username            = Username,
+                Password            = Password,
+                Protocol            = Protocol,
                 UnifiedInboxEnabled = UnifiedInboxEnabled,
-                CreatedAtUtc     = DateTime.UtcNow
+                CreatedAtUtc        = DateTime.UtcNow
             };
 
             db.Add(account);
-            db.SaveChangesAsync().GetAwaiter().GetResult();
-        }
+            await db.SaveChangesAsync();
 
-        OnSaved?.Invoke();
+            StatusMessage = "Synchronisiere Ordner…";
+            try
+            {
+                using var syncScope = ZeMail.UI.App.Services.CreateScope();
+                var sync = syncScope.ServiceProvider
+                                    .GetRequiredService<ZeMail.Core.Interfaces.IImapSyncService>();
+                await sync.SyncAccountAsync(account.Id);
+                StatusMessage = "✓ Ordner synchronisiert!";
+                OnSaved?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Sync-Fehler: {ex.GetType().Name}: {ex.Message}";
+                if (ex.InnerException is not null)
+                    StatusMessage += $"\nInner: {ex.InnerException.Message}";
+            }
+        }
     }
 }

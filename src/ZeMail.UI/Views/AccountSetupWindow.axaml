@@ -34,6 +34,7 @@
             <Setter Property="Background" Value="#1e1e40"/>
         </Style>
     </Window.Styles>
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
     <Border Padding="32">
         <StackPanel Spacing="0">
 
@@ -182,6 +183,16 @@
                         Padding="14,8"
                         Margin="0,0,8,0"/>
 
+                <Button Grid.Column="2"
+                        Content="← Zurück"
+                        Command="{Binding PrevStepCommand}"
+                        IsVisible="{Binding IsStep3}"
+                        Background="#2a2a4a"
+                        Foreground="#c0c0ff"
+                        CornerRadius="6"
+                        Padding="14,8"
+                        Margin="0,0,8,0"/>
+
                 <Button Grid.Column="3"
                         Content="Weiter →"
                         Command="{Binding NextStepCommand}"
@@ -213,4 +224,5 @@
 
         </StackPanel>
     </Border>
+    </ScrollViewer>
 </Window>

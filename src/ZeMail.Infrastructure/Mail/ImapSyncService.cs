@@ -243,13 +243,15 @@ public sealed class ImapSyncService : IImapSyncService
     private static async Task<ImapClient> ConnectAsync(Account account, CancellationToken ct)
     {
         var client = new ImapClient();
+        client.CheckCertificateRevocation = false;
+        client.ServerCertificateValidationCallback =
+            (sender, certificate, chain, errors) => true;
 
         await client.ConnectAsync(
             account.ImapHost,
             account.ImapPort,
             SecureSocketOptions.SslOnConnect,
             ct);
-
         await client.AuthenticateAsync(account.Username, account.Password, ct);
         return client;
     }

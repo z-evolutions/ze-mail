@@ -35,6 +35,7 @@ class Program
         sc.AddScoped<ISmtpSenderService, SmtpSenderService>();
         sc.AddScoped<ISignatureService, SignatureService>();
         sc.AddScoped<ISearchService, SearchService>();
+        sc.AddScoped<IImapSyncService, ImapSyncService>();
 
         sc.AddLogging(b => b
             .AddConsole()

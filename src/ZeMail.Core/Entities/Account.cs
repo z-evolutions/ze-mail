@@ -9,6 +9,10 @@ public class Account
     public int ImapPort { get; set; } = 993;
     public string SmtpHost { get; set; } = string.Empty;
     public int SmtpPort { get; set; } = 465;
+
+    public string Pop3Host { get; set; } = string.Empty;
+    public int Pop3Port { get; set; } = 995;
+    public bool Pop3LeaveOnServer { get; set; } = true;
     public string Protocol { get; set; } = "IMAP";
     public string TlsMode { get; set; } = "Implicit";
 

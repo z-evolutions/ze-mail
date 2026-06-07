@@ -1,16 +1,27 @@
 using Microsoft.EntityFrameworkCore;
 using ZeMail.Core.Entities;
+using ZeMail.Core.Interfaces;
 
 namespace ZeMail.Infrastructure.Persistence;
 
-public class ZeMailDbContext : DbContext
+public class ZeMailDbContext : DbContext, IZeMailDbContext
 {
-    public DbSet<Account> Accounts => Set<Account>();
-    public DbSet<Folder> Folders => Set<Folder>();
-    public DbSet<Message> Messages => Set<Message>();
-    public DbSet<Attachment> Attachments => Set<Attachment>();
+    // Konkrete DbSet-Properties für Infrastructure-internen Zugriff
+    public DbSet<Account>          Accounts          => Set<Account>();
+    public DbSet<Folder>           Folders           => Set<Folder>();
+    public DbSet<Message>          Messages          => Set<Message>();
+    public DbSet<Attachment>       Attachments       => Set<Attachment>();
     public DbSet<PendingOperation> PendingOperations => Set<PendingOperation>();
-    public DbSet<Signature> Signatures => Set<Signature>();
+    public DbSet<Signature>        Signatures        => Set<Signature>();
+    public DbSet<Rule>             Rules             => Set<Rule>();
+
+    // IZeMailDbContext — explizite Interface-Implementierung
+    IQueryable<Account>    IZeMailDbContext.Accounts    => Set<Account>();
+    IQueryable<Folder>     IZeMailDbContext.Folders     => Set<Folder>();
+    IQueryable<Message>    IZeMailDbContext.Messages    => Set<Message>();
+    IQueryable<Attachment> IZeMailDbContext.Attachments => Set<Attachment>();
+    IQueryable<Rule>       IZeMailDbContext.Rules       => Set<Rule>();
+    IQueryable<Signature>  IZeMailDbContext.Signatures  => Set<Signature>();
 
     public ZeMailDbContext(DbContextOptions<ZeMailDbContext> options) : base(options) { }
 
@@ -67,6 +78,17 @@ public class ZeMailDbContext : DbContext
         {
             e.HasKey(x => x.Id);
             e.HasIndex(x => new { x.AccountId, x.IsDefault });
+        });
+
+        modelBuilder.Entity<Rule>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.Property(r => r.Name).IsRequired().HasMaxLength(200);
+            e.HasOne(r => r.Account)
+             .WithMany(a => a.Rules)
+             .HasForeignKey(r => r.AccountId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(r => new { r.AccountId, r.Priority });
         });
     }
 }

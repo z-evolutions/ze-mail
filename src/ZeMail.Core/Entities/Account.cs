@@ -21,8 +21,7 @@ public class Account
     public string AccentColor { get; set; } = "#5AC8FA";
     public bool UnifiedInboxEnabled { get; set; } = false;
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
-
+    public ICollection<Rule> Rules { get; set; } = new List<Rule>();
     public ICollection<Signature> Signatures { get; set; } = new List<Signature>();
-
     public ICollection<Folder> Folders { get; set; } = new List<Folder>();
 }

@@ -22,4 +22,5 @@ public class Message
 
     public Folder Folder { get; set; } = null!;
     public ICollection<Attachment> Attachments { get; set; } = new List<Attachment>();
+    public ICollection<MessageTag> MessageTags { get; set; } = new List<MessageTag>();
 }

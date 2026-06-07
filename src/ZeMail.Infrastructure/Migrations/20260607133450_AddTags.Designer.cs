@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ZeMail.Infrastructure.Persistence;
 
@@ -10,9 +11,11 @@ using ZeMail.Infrastructure.Persistence;
 namespace ZeMail.Infrastructure.Migrations
 {
     [DbContext(typeof(ZeMailDbContext))]
-    partial class ZeMailDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260607133450_AddTags")]
+    partial class AddTags
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.16");

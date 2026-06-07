@@ -24,4 +24,5 @@ public class Account
     public ICollection<Rule> Rules { get; set; } = new List<Rule>();
     public ICollection<Signature> Signatures { get; set; } = new List<Signature>();
     public ICollection<Folder> Folders { get; set; } = new List<Folder>();
+    public ICollection<Tag> Tags { get; set; } = new List<Tag>();
 }

@@ -15,6 +15,8 @@ public class ZeMailDbContext : DbContext, IZeMailDbContext
     public DbSet<Signature>        Signatures        => Set<Signature>();
     public DbSet<Rule>             Rules             => Set<Rule>();
     public DbSet<Contact> Contacts => Set<Contact>();
+    public DbSet<Tag>        Tags        => Set<Tag>();
+    public DbSet<MessageTag> MessageTags => Set<MessageTag>();
 
     // IZeMailDbContext — explizite Interface-Implementierung
     IQueryable<Account>    IZeMailDbContext.Accounts    => Set<Account>();
@@ -24,6 +26,8 @@ public class ZeMailDbContext : DbContext, IZeMailDbContext
     IQueryable<Rule>       IZeMailDbContext.Rules       => Set<Rule>();
     IQueryable<Signature>  IZeMailDbContext.Signatures  => Set<Signature>();
     IQueryable<Contact> IZeMailDbContext.Contacts => Set<Contact>();
+    IQueryable<Tag>        IZeMailDbContext.Tags        => Set<Tag>();
+    IQueryable<MessageTag> IZeMailDbContext.MessageTags => Set<MessageTag>();
 
     void IZeMailDbContext.Add<T>(T entity)    => base.Add(entity);
     void IZeMailDbContext.Remove<T>(T entity) => base.Remove(entity);
@@ -106,6 +110,31 @@ public class ZeMailDbContext : DbContext, IZeMailDbContext
             .HasForeignKey(x => x.AccountId)
             .OnDelete(DeleteBehavior.SetNull)
             .IsRequired(false);
+        });
+
+        modelBuilder.Entity<Tag>(e =>
+        {
+            e.HasKey(t => t.Id);
+            e.Property(t => t.Name).IsRequired().HasMaxLength(100);
+            e.Property(t => t.Color).IsRequired().HasMaxLength(7);
+            e.HasIndex(t => new { t.AccountId, t.Name }).IsUnique();
+            e.HasOne(t => t.Account)
+            .WithMany(a => a.Tags)
+            .HasForeignKey(t => t.AccountId)
+            .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<MessageTag>(e =>
+        {
+            e.HasKey(mt => new { mt.MessageId, mt.TagId });
+            e.HasOne(mt => mt.Message)
+            .WithMany(m => m.MessageTags)
+            .HasForeignKey(mt => mt.MessageId)
+            .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(mt => mt.Tag)
+            .WithMany(t => t.MessageTags)
+            .HasForeignKey(mt => mt.TagId)
+            .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

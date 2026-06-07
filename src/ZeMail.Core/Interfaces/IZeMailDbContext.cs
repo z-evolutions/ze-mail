@@ -11,6 +11,8 @@ public interface IZeMailDbContext
     IQueryable<Rule>       Rules       { get; }
     IQueryable<Signature>  Signatures  { get; }
     IQueryable<Contact>    Contacts    { get; }
+    IQueryable<Tag>        Tags        { get; }
+    IQueryable<MessageTag> MessageTags { get; }
 
     void Add<T>(T entity) where T : class;
     void Remove<T>(T entity) where T : class;

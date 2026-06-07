@@ -58,17 +58,6 @@
                     </Grid>
                 </Border>
 
-                <!-- Neu-Button -->
-                <Button Grid.Column="3"
-                        Content="⚙"
-                        Command="{Binding OpenAccountSetupCommand}"
-                        Background="Transparent"
-                        Foreground="#6060a0"
-                        FontSize="18"
-                        VerticalAlignment="Center"
-                        ToolTip.Tip="Einstellungen"
-                        Padding="10,6"/>
-
             </Grid>
         </Border>
 
@@ -78,22 +67,38 @@
             <!-- Sidebar -->
             <Border Grid.Column="0" Background="#0f0f1a"
                     BorderThickness="0,0,1,0" BorderBrush="#2a2a4a">
-                <ItemsControl ItemsSource="{Binding NavItems}" Margin="0,8">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:NavItem">
-                            <Button Command="{Binding $parent[Window].DataContext.NavigateCommand}"
-                                    CommandParameter="{Binding}"
-                                    Background="Transparent"
-                                    Width="64" Height="56"
-                                    ToolTip.Tip="{Binding Label}">
-                                <TextBlock Text="{Binding Icon}"
-                                           FontSize="20"
-                                           HorizontalAlignment="Center"
-                                           VerticalAlignment="Center"/>
-                            </Button>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                <DockPanel>
+
+                    <!-- Zahnrad ganz unten -->
+                    <Button DockPanel.Dock="Bottom"
+                            Content="⚙"
+                            Command="{Binding OpenAccountSetupCommand}"
+                            Background="Transparent"
+                            Foreground="#6060a0"
+                            FontSize="18"
+                            Width="64" Height="56"
+                            HorizontalContentAlignment="Center"
+                            ToolTip.Tip="Einstellungen"/>
+
+                    <!-- Nav-Items -->
+                    <ItemsControl ItemsSource="{Binding NavItems}" Margin="0,8">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:NavItem">
+                                <Button Command="{Binding $parent[Window].DataContext.NavigateCommand}"
+                                        CommandParameter="{Binding}"
+                                        Background="Transparent"
+                                        Width="64" Height="56"
+                                        ToolTip.Tip="{Binding Label}">
+                                    <TextBlock Text="{Binding Icon}"
+                                            FontSize="20"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"/>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                </DockPanel>
             </Border>
 
             <!-- Inhaltsbereich -->

@@ -253,4 +253,13 @@ public sealed class ImapSyncService : IImapSyncService
         await client.AuthenticateAsync(account.Username, account.Password, ct);
         return client;
     }
+
+    // ── IDLE – wird vom ImapIdleService genutzt ──────────────────────────────
+    public Task StartIdleAsync(Guid folderId, CancellationToken ct = default)
+    {
+        // Der ImapIdleService übernimmt die eigentliche IDLE-Logik.
+        // Diese Methode erfüllt das Interface – direkter Aufruf via DI empfohlen.
+        throw new NotSupportedException(
+            "Bitte ImapIdleService.RunAsync() direkt verwenden.");
+    }
 }

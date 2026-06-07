@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ZeMail.Application/ZeMail.Application.csproj" />
+    <Project Path="src/ZeMail.Core/ZeMail.Core.csproj" />
+    <Project Path="src/ZeMail.Desktop/ZeMail.Desktop.csproj" />
+    <Project Path="src/ZeMail.Infrastructure/ZeMail.Infrastructure.csproj" />
+    <Project Path="src/ZeMail.UI/ZeMail.UI.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ZeMail.Application.Tests/ZeMail.Application.Tests.csproj" />
+    <Project Path="tests/ZeMail.Core.Tests/ZeMail.Core.Tests.csproj" />
+    <Project Path="tests/ZeMail.Infrastructure.Tests/ZeMail.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>

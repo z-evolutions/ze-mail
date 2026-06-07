@@ -256,6 +256,34 @@ public sealed class ImapSyncService : IImapSyncService
         return client;
     }
 
+    public async Task FetchBodyAsync(Guid messageId, CancellationToken ct = default)
+    {
+        var message = await _db.Messages
+            .Include(m => m.Folder)
+            .ThenInclude(f => f.Account)
+            .FirstOrDefaultAsync(m => m.Id == messageId, ct)
+            ?? throw new InvalidOperationException($"Message {messageId} nicht gefunden.");
+
+        if (!string.IsNullOrEmpty(message.BodyText) || !string.IsNullOrEmpty(message.BodyHtml))
+            return; // Body bereits vorhanden
+
+        var account = message.Folder.Account;
+        using var client = await ConnectAsync(account, ct);
+
+        var imapFolder = await client.GetFolderAsync(message.Folder.FullPath, ct);
+        await imapFolder.OpenAsync(FolderAccess.ReadOnly, ct);
+
+        var uid = new UniqueId(message.Uid);
+        var mime = await imapFolder.GetMessageAsync(uid, ct);
+
+        message.BodyText = mime.TextBody;
+        message.BodyHtml = mime.HtmlBody;
+
+        await imapFolder.CloseAsync(false, ct);
+        await client.DisconnectAsync(true, ct);
+        await _db.SaveChangesAsync(ct);
+    }
+
     // ── IDLE – wird vom ImapIdleService genutzt ──────────────────────────────
     public Task StartIdleAsync(Guid folderId, CancellationToken ct = default)
     {

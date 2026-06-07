@@ -1,7 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -78,8 +77,10 @@ public partial class MailboxViewModel : ViewModelBase
         }
 
         if (Folders.Any())
-            SelectedFolder = Folders.First(f =>
+        {
+            SelectedFolder = Folders.FirstOrDefault(f =>
                 f.Name.ToLower() is "inbox" or "posteingang") ?? Folders[0];
+        }
 
         await SyncAsync();
     }
@@ -103,20 +104,58 @@ public partial class MailboxViewModel : ViewModelBase
         {
             Messages.Add(new MessageViewModel
             {
-                Id            = m.Id,
-                Subject       = m.Subject,
-                FromName      = m.FromName,
-                FromAddress   = m.FromAddress,
-                ReceivedAtUtc = m.ReceivedAtUtc,
-                IsRead        = m.IsRead,
-                IsStarred     = m.IsStarred,
+                Id             = m.Id,
+                Subject        = m.Subject,
+                FromName       = m.FromName,
+                FromAddress    = m.FromAddress,
+                ReceivedAtUtc  = m.ReceivedAtUtc,
+                IsRead         = m.IsRead,
+                IsStarred      = m.IsStarred,
                 HasAttachments = m.Attachments.Any(),
-                BodyText      = m.BodyText,
-                BodyHtml      = m.BodyHtml
+                BodyText       = m.BodyText,
+                BodyHtml       = m.BodyHtml
             });
         }
 
         SelectedMessage = Messages.FirstOrDefault();
+    }
+
+    // ── Body nachladen ────────────────────────────────────────────────────────
+    partial void OnSelectedMessageChanged(MessageViewModel? value)
+    {
+        if (value is not null &&
+            string.IsNullOrEmpty(value.BodyText) &&
+            string.IsNullOrEmpty(value.BodyHtml))
+        {
+            _ = FetchBodyAsync(value);
+        }
+    }
+
+    private async Task FetchBodyAsync(MessageViewModel msg)
+    {
+        if (App.Services is null) return;
+
+        try
+        {
+            using var scope = App.Services.CreateScope();
+            var sync = scope.ServiceProvider
+                            .GetRequiredService<ZeMail.Core.Interfaces.IImapSyncService>();
+            await sync.FetchBodyAsync(msg.Id);
+
+            using var scope2 = App.Services.CreateScope();
+            var db = scope2.ServiceProvider
+                           .GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
+            var dbMsg = db.Messages.FirstOrDefault(m => m.Id == msg.Id);
+            if (dbMsg is not null)
+            {
+                msg.BodyText = dbMsg.BodyText;
+                msg.BodyHtml = dbMsg.BodyHtml;
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Body-Fehler: {ex.Message}";
+        }
     }
 
     // ── Sync ─────────────────────────────────────────────────────────────────
@@ -141,8 +180,6 @@ public partial class MailboxViewModel : ViewModelBase
                 await sync.SyncAccountAsync(account.Id);
 
             StatusText = $"Sync abgeschlossen {DateTime.Now:HH:mm}";
-
-            // Ordner neu laden
             await LoadFromDbAsync();
         }
         catch (Exception ex)

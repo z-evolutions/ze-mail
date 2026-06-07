@@ -14,6 +14,7 @@ public class ZeMailDbContext : DbContext, IZeMailDbContext
     public DbSet<PendingOperation> PendingOperations => Set<PendingOperation>();
     public DbSet<Signature>        Signatures        => Set<Signature>();
     public DbSet<Rule>             Rules             => Set<Rule>();
+    public DbSet<Contact> Contacts => Set<Contact>();
 
     // IZeMailDbContext — explizite Interface-Implementierung
     IQueryable<Account>    IZeMailDbContext.Accounts    => Set<Account>();
@@ -22,6 +23,10 @@ public class ZeMailDbContext : DbContext, IZeMailDbContext
     IQueryable<Attachment> IZeMailDbContext.Attachments => Set<Attachment>();
     IQueryable<Rule>       IZeMailDbContext.Rules       => Set<Rule>();
     IQueryable<Signature>  IZeMailDbContext.Signatures  => Set<Signature>();
+    IQueryable<Contact> IZeMailDbContext.Contacts => Set<Contact>();
+
+    void IZeMailDbContext.Add<T>(T entity)    => base.Add(entity);
+    void IZeMailDbContext.Remove<T>(T entity) => base.Remove(entity);
 
     public ZeMailDbContext(DbContextOptions<ZeMailDbContext> options) : base(options) { }
 
@@ -89,6 +94,18 @@ public class ZeMailDbContext : DbContext, IZeMailDbContext
              .HasForeignKey(r => r.AccountId)
              .OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(r => new { r.AccountId, r.Priority });
+        });
+
+        modelBuilder.Entity<Contact>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.DisplayName).IsRequired().HasMaxLength(300);
+            e.HasIndex(x => x.AccountId);
+            e.HasOne(x => x.Account)
+            .WithMany()
+            .HasForeignKey(x => x.AccountId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
         });
     }
 }

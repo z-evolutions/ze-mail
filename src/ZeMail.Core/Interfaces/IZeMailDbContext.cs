@@ -10,6 +10,9 @@ public interface IZeMailDbContext
     IQueryable<Attachment> Attachments { get; }
     IQueryable<Rule>       Rules       { get; }
     IQueryable<Signature>  Signatures  { get; }
+    IQueryable<Contact>    Contacts    { get; }
 
+    void Add<T>(T entity) where T : class;
+    void Remove<T>(T entity) where T : class;
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

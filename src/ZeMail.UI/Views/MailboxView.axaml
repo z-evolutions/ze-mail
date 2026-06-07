@@ -77,41 +77,36 @@
         </Border>
 
         <!-- ── Spalte 3: Lesebereich ── -->
-        <Border Grid.Column="2" Background="#0a0a1a" Padding="24">
-            <ScrollViewer>
+        <Grid Grid.Column="2" RowDefinitions="Auto,*" Background="#0a0a1a">
+
+            <!-- Header -->
+            <Border Grid.Row="0" Padding="24,16"
+                    BorderThickness="0,0,0,1" BorderBrush="#1a1a3a">
                 <StackPanel IsVisible="{Binding SelectedMessage, Converter={x:Static ObjectConverters.IsNotNull}}">
                     <TextBlock Text="{Binding SelectedMessage.Subject}"
-                               FontSize="20"
-                               FontWeight="Bold"
-                               Foreground="#e0e0ff"
-                               TextWrapping="Wrap"
-                               Margin="0,0,0,16"/>
-                    <Border Background="#12122a" CornerRadius="8" Padding="16" Margin="0,0,0,16">
-                        <Grid ColumnDefinitions="*,Auto">
-                            <StackPanel Grid.Column="0" Spacing="2">
-                                <TextBlock Text="{Binding SelectedMessage.SenderDisplay}"
-                                           Foreground="#c0c0ff"
-                                           FontWeight="SemiBold"
-                                           FontSize="13"/>
-                                <TextBlock Text="{Binding SelectedMessage.FromAddress}"
-                                           Foreground="#6060a0"
-                                           FontSize="11"/>
-                            </StackPanel>
-                            <TextBlock Grid.Column="1"
-                                       Text="{Binding SelectedMessage.DisplayDate}"
-                                       Foreground="#6060a0"
-                                       FontSize="12"
-                                       VerticalAlignment="Center"/>
-                        </Grid>
-                    </Border>
-                    <TextBlock Text="{Binding SelectedMessage.BodyText}"
-                               Foreground="#c0c0d0"
-                               FontSize="14"
-                               TextWrapping="Wrap"
-                               LineHeight="22"/>
+                               FontSize="18" FontWeight="Bold"
+                               Foreground="#e0e0ff" TextWrapping="Wrap"
+                               Margin="0,0,0,8"/>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Grid.Column="0" Spacing="2">
+                            <TextBlock Text="{Binding SelectedMessage.SenderDisplay}"
+                                       Foreground="#c0c0ff" FontWeight="SemiBold" FontSize="13"/>
+                            <TextBlock Text="{Binding SelectedMessage.FromAddress}"
+                                       Foreground="#6060a0" FontSize="11"/>
+                        </StackPanel>
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding SelectedMessage.DisplayDate}"
+                                   Foreground="#6060a0" FontSize="12"
+                                   VerticalAlignment="Center"/>
+                    </Grid>
                 </StackPanel>
-            </ScrollViewer>
-        </Border>
+            </Border>
+
+            <!-- NativeWebView Body -->
+            <NativeWebView Grid.Row="1"
+                           x:Name="MailBodyWebView"
+                           IsVisible="{Binding SelectedMessage, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+        </Grid>
 
     </Grid>
 </UserControl>

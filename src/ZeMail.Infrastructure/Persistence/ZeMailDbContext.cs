@@ -17,6 +17,7 @@ public class ZeMailDbContext : DbContext, IZeMailDbContext
     public DbSet<Contact> Contacts => Set<Contact>();
     public DbSet<Tag>        Tags        => Set<Tag>();
     public DbSet<MessageTag> MessageTags => Set<MessageTag>();
+    public DbSet<TaskItem> Tasks => Set<TaskItem>();
 
     // IZeMailDbContext — explizite Interface-Implementierung
     IQueryable<Account>    IZeMailDbContext.Accounts    => Set<Account>();
@@ -28,6 +29,7 @@ public class ZeMailDbContext : DbContext, IZeMailDbContext
     IQueryable<Contact> IZeMailDbContext.Contacts => Set<Contact>();
     IQueryable<Tag>        IZeMailDbContext.Tags        => Set<Tag>();
     IQueryable<MessageTag> IZeMailDbContext.MessageTags => Set<MessageTag>();
+    IQueryable<TaskItem> IZeMailDbContext.Tasks => Set<TaskItem>();
 
     void IZeMailDbContext.Add<T>(T entity)    => base.Add(entity);
     void IZeMailDbContext.Remove<T>(T entity) => base.Remove(entity);
@@ -135,6 +137,22 @@ public class ZeMailDbContext : DbContext, IZeMailDbContext
             .WithMany(t => t.MessageTags)
             .HasForeignKey(mt => mt.TagId)
             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<TaskItem>(e =>
+        {
+            e.HasKey(t => t.Id);
+            e.Property(t => t.Title).IsRequired().HasMaxLength(500);
+            e.HasOne(t => t.Account)
+            .WithMany(a => a.Tasks)
+            .HasForeignKey(t => t.AccountId)
+            .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(t => t.LinkedMessage)
+            .WithMany(m => m.LinkedTasks)
+            .HasForeignKey(t => t.LinkedMessageId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+            e.HasIndex(t => new { t.AccountId, t.IsCompleted, t.DueUtc });
         });
     }
 }

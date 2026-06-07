@@ -25,4 +25,5 @@ public class Account
     public ICollection<Signature> Signatures { get; set; } = new List<Signature>();
     public ICollection<Folder> Folders { get; set; } = new List<Folder>();
     public ICollection<Tag> Tags { get; set; } = new List<Tag>();
+    public ICollection<TaskItem> Tasks { get; set; } = new List<TaskItem>();
 }

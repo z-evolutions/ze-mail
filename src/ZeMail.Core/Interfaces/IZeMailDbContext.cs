@@ -13,6 +13,7 @@ public interface IZeMailDbContext
     IQueryable<Contact>    Contacts    { get; }
     IQueryable<Tag>        Tags        { get; }
     IQueryable<MessageTag> MessageTags { get; }
+    IQueryable<TaskItem> Tasks { get; }
 
     void Add<T>(T entity) where T : class;
     void Remove<T>(T entity) where T : class;

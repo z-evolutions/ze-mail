@@ -11,12 +11,12 @@ namespace ZeMail.Infrastructure.Mail;
 
 public sealed class SmtpSenderService : ISmtpSenderService
 {
-    private readonly ZeMailDbContext _db;
+    private readonly ZeMailDbContext           _db;
     private readonly ILogger<SmtpSenderService> _logger;
 
     public SmtpSenderService(ZeMailDbContext db, ILogger<SmtpSenderService> logger)
     {
-        _db = db;
+        _db     = db;
         _logger = logger;
     }
 
@@ -56,10 +56,10 @@ public sealed class SmtpSenderService : ISmtpSenderService
 
         mime.From.Add(new MailboxAddress(fromName, fromAddress));
 
-        foreach (var to in outgoing.To)
+        foreach (var to  in outgoing.To)
             mime.To.Add(MailboxAddress.Parse(to));
 
-        foreach (var cc in outgoing.Cc)
+        foreach (var cc  in outgoing.Cc)
             mime.Cc.Add(MailboxAddress.Parse(cc));
 
         foreach (var bcc in outgoing.Bcc)
@@ -76,6 +76,17 @@ public sealed class SmtpSenderService : ISmtpSenderService
         foreach (var file in outgoing.Attachments)
             builder.Attachments.Add(file.FileName, file.Data,
                 ContentType.Parse(file.MimeType));
+
+        // iCal-Payload für RSVP-Replies (RFC 5546)
+        if (!string.IsNullOrEmpty(outgoing.ICalPayload))
+        {
+            var calPart = new TextPart("calendar")
+            {
+                Text = outgoing.ICalPayload
+            };
+            calPart.ContentType.Parameters.Add("method", "REPLY");
+            builder.Attachments.Add(calPart);
+        }
 
         mime.Body = builder.ToMessageBody();
 

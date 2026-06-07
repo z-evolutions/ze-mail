@@ -3,6 +3,7 @@
         xmlns:vm="using:ZeMail.UI.ViewModels"
         x:Class="ZeMail.UI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/zemail.ico"
         Title="ZE-Mail"
         Width="1200" Height="750"
         MinWidth="900" MinHeight="600"
@@ -17,7 +18,7 @@
 
                 <!-- Logo-Bereich (über Sidebar) -->
                 <TextBlock Grid.Column="0"
-                           Text="ZM"
+                           Text="ZE-Mail"
                            Foreground="#7070ff"
                            FontSize="16"
                            FontWeight="Bold"

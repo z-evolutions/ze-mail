@@ -8,7 +8,8 @@
     <Grid ColumnDefinitions="220,320,*">
 
         <!-- ── Spalte 1: Ordnerbaum ── -->
-        <Border Grid.Column="0" Background="#12122a" BorderThickness="0,0,1,0" BorderBrush="#2a2a4a">
+        <Border Grid.Column="0" Background="#12122a"
+                BorderThickness="0,0,1,0" BorderBrush="#2a2a4a">
             <DockPanel>
                 <TextBlock DockPanel.Dock="Top"
                            Text="ORDNER"
@@ -37,78 +38,56 @@
         </Border>
 
         <!-- ── Spalte 2: Nachrichtenliste ── -->
-        <Border Grid.Column="1" Background="#0f0f23" BorderThickness="0,0,1,0" BorderBrush="#2a2a4a">
-            <DockPanel>
-
-                <!-- Suchleiste -->
-                <Border DockPanel.Dock="Top" Margin="8" Background="#1a1a3a" CornerRadius="6" Padding="8,6">
-                    <TextBox Text="{Binding SearchText}"
-                             PlaceholderText="Suchen…"
-                             Background="Transparent"
-                             BorderThickness="0"
-                             Foreground="#c0c0e0"/>
-                </Border>
-
-                <!-- Liste -->
-                <ListBox ItemsSource="{Binding Messages}"
-                         SelectedItem="{Binding SelectedMessage}"
-                         Background="Transparent">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate x:DataType="m:MessageViewModel">
-                            <Border Padding="10,8" BorderThickness="0,0,0,1" BorderBrush="#1a1a3a">
-                                <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
-
-                                    <!-- Absender -->
-                                    <TextBlock Grid.Row="0" Grid.Column="0"
-                                               Text="{Binding SenderDisplay}"
-                                               FontWeight="SemiBold"
-                                               Foreground="#e0e0ff"
-                                               FontSize="13"
-                                               TextTrimming="CharacterEllipsis"/>
-
-                                    <!-- Datum -->
-                                    <TextBlock Grid.Row="0" Grid.Column="1"
-                                               Text="{Binding DisplayDate}"
-                                               Foreground="#6060a0"
-                                               FontSize="11"
-                                               Margin="8,0,0,0"/>
-
-                                    <!-- Betreff -->
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                                               Text="{Binding Subject}"
-                                               Foreground="#a0a0c0"
-                                               FontSize="12"
-                                               TextTrimming="CharacterEllipsis"
-                                               Margin="0,2,0,0"/>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                    <ListBox.Styles>
-                        <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
-                            <Setter Property="Background" Value="#1e1e4a"/>
-                        </Style>
-                    </ListBox.Styles>
-                </ListBox>
-            </DockPanel>
+        <Border Grid.Column="1" Background="#0f0f23"
+                BorderThickness="0,0,1,0" BorderBrush="#2a2a4a">
+            <ListBox ItemsSource="{Binding Messages}"
+                     SelectedItem="{Binding SelectedMessage}"
+                     Background="Transparent">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="m:MessageViewModel">
+                        <Border Padding="10,8" BorderThickness="0,0,0,1" BorderBrush="#1a1a3a">
+                            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
+                                <TextBlock Grid.Row="0" Grid.Column="0"
+                                           Text="{Binding SenderDisplay}"
+                                           FontWeight="SemiBold"
+                                           Foreground="#e0e0ff"
+                                           FontSize="13"
+                                           TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1"
+                                           Text="{Binding DisplayDate}"
+                                           Foreground="#6060a0"
+                                           FontSize="11"
+                                           Margin="8,0,0,0"/>
+                                <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                           Text="{Binding Subject}"
+                                           Foreground="#a0a0c0"
+                                           FontSize="12"
+                                           TextTrimming="CharacterEllipsis"
+                                           Margin="0,2,0,0"/>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+                <ListBox.Styles>
+                    <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+                        <Setter Property="Background" Value="#1e1e4a"/>
+                    </Style>
+                </ListBox.Styles>
+            </ListBox>
         </Border>
 
         <!-- ── Spalte 3: Lesebereich ── -->
         <Border Grid.Column="2" Background="#0a0a1a" Padding="24">
             <ScrollViewer>
                 <StackPanel IsVisible="{Binding SelectedMessage, Converter={x:Static ObjectConverters.IsNotNull}}">
-
-                    <!-- Betreff -->
                     <TextBlock Text="{Binding SelectedMessage.Subject}"
                                FontSize="20"
                                FontWeight="Bold"
                                Foreground="#e0e0ff"
                                TextWrapping="Wrap"
                                Margin="0,0,0,16"/>
-
-                    <!-- Meta -->
                     <Border Background="#12122a" CornerRadius="8" Padding="16" Margin="0,0,0,16">
-                        <Grid ColumnDefinitions="Auto,*,Auto">
+                        <Grid ColumnDefinitions="*,Auto">
                             <StackPanel Grid.Column="0" Spacing="2">
                                 <TextBlock Text="{Binding SelectedMessage.SenderDisplay}"
                                            Foreground="#c0c0ff"
@@ -118,15 +97,13 @@
                                            Foreground="#6060a0"
                                            FontSize="11"/>
                             </StackPanel>
-                            <TextBlock Grid.Column="2"
+                            <TextBlock Grid.Column="1"
                                        Text="{Binding SelectedMessage.DisplayDate}"
                                        Foreground="#6060a0"
                                        FontSize="12"
                                        VerticalAlignment="Center"/>
                         </Grid>
                     </Border>
-
-                    <!-- Body -->
                     <TextBlock Text="{Binding SelectedMessage.BodyText}"
                                Foreground="#c0c0d0"
                                FontSize="14"

@@ -1,7 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:ZeMail.UI.ViewModels"
-        xmlns:views="using:ZeMail.UI.Views"
         x:Class="ZeMail.UI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="ZE-Mail"
@@ -9,31 +8,99 @@
         MinWidth="900" MinHeight="600"
         Background="#1a1a2e">
 
-    <Grid ColumnDefinitions="64,*">
+    <Grid RowDefinitions="48,*">
 
-        <!-- Sidebar -->
-        <Border Grid.Column="0" Background="#0f0f1a" Padding="0,16">
-            <ItemsControl ItemsSource="{Binding NavItems}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="vm:NavItem">
-                        <Button Command="{Binding $parent[Window].DataContext.NavigateCommand}"
-                                CommandParameter="{Binding}"
-                                Background="Transparent"
-                                Width="64" Height="64"
-                                ToolTip.Tip="{Binding Label}">
-                            <TextBlock Text="{Binding Icon}"
-                                       FontSize="22"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"/>
-                        </Button>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+        <!-- ── Topbar ── -->
+        <Border Grid.Row="0" Background="#0a0a18"
+                BorderThickness="0,0,0,1" BorderBrush="#2a2a4a">
+            <Grid ColumnDefinitions="64,Auto,*,Auto,Auto" Margin="0,0,12,0">
+
+                <!-- Logo-Bereich (über Sidebar) -->
+                <TextBlock Grid.Column="0"
+                           Text="ZM"
+                           Foreground="#7070ff"
+                           FontSize="16"
+                           FontWeight="Bold"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"/>
+
+                <!-- Aktueller Bereich -->
+                <TextBlock Grid.Column="1"
+                           Text="{Binding SelectedNavItem.Label}"
+                           Foreground="#c0c0ff"
+                           FontSize="14"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center"
+                           Margin="16,0,0,0"/>
+
+                <!-- Suchleiste -->
+                <Border Grid.Column="2"
+                        Background="#1a1a3a"
+                        CornerRadius="6"
+                        Margin="24,8"
+                        Padding="10,0">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <TextBlock Grid.Column="0"
+                                   Text="🔍"
+                                   FontSize="12"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,6,0"
+                                   Foreground="#6060a0"/>
+                        <TextBox Grid.Column="1"
+                                 Text="{Binding SearchText}"
+                                 PlaceholderText="Suchen…"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 Foreground="#c0c0e0"
+                                 VerticalAlignment="Center"
+                                 FontSize="13"/>
+                    </Grid>
+                </Border>
+
+                <!-- Neu-Button -->
+                <Button Grid.Column="3"
+                        Content="+ Neu"
+                        Background="#3a3aff"
+                        Foreground="White"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        Padding="14,6"
+                        CornerRadius="6"
+                        VerticalAlignment="Center"
+                        Margin="0,0,8,0"/>
+
+            </Grid>
         </Border>
 
-        <!-- Hauptbereich -->
-        <ContentControl Grid.Column="1"
-                        Content="{Binding CurrentView}"/>
+        <!-- ── Hauptbereich ── -->
+        <Grid Grid.Row="1" ColumnDefinitions="64,*">
+
+            <!-- Sidebar -->
+            <Border Grid.Column="0" Background="#0f0f1a"
+                    BorderThickness="0,0,1,0" BorderBrush="#2a2a4a">
+                <ItemsControl ItemsSource="{Binding NavItems}" Margin="0,8">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:NavItem">
+                            <Button Command="{Binding $parent[Window].DataContext.NavigateCommand}"
+                                    CommandParameter="{Binding}"
+                                    Background="Transparent"
+                                    Width="64" Height="56"
+                                    ToolTip.Tip="{Binding Label}">
+                                <TextBlock Text="{Binding Icon}"
+                                           FontSize="20"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"/>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
+
+            <!-- Inhaltsbereich -->
+            <ContentControl Grid.Column="1"
+                            Content="{Binding CurrentView}"/>
+
+        </Grid>
 
     </Grid>
 </Window>

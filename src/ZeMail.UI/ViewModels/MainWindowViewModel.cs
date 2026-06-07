@@ -12,6 +12,9 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private NavItem _selectedNavItem;
 
+    [ObservableProperty]
+    private string _searchText = string.Empty;
+
     public List<NavItem> NavItems { get; } =
     [
         new NavItem("Mail",     "✉",  "Mail"),

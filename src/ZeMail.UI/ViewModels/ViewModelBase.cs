@@ -2,6 +2,4 @@
 
 namespace ZeMail.UI.ViewModels;
 
-public abstract class ViewModelBase : ObservableObject
-{
-}
+public abstract partial class ViewModelBase : ObservableObject { }

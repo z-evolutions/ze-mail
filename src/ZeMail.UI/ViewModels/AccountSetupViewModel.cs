@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ZeMail.UI.ViewModels;
 
@@ -143,6 +144,32 @@ public partial class AccountSetupViewModel : ViewModelBase
     private void Save()
     {
         if (!TestSucceeded) return;
+
+        if (ZeMail.UI.App.Services is not null)
+        {
+            using var scope = ZeMail.UI.App.Services.CreateScope();
+            var db = scope.ServiceProvider
+                        .GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
+
+            var account = new ZeMail.Core.Entities.Account
+            {
+                Name             = DisplayName,
+                EmailAddress     = EmailAddress,
+                ImapHost         = ImapHost,
+                ImapPort         = ImapPort,
+                SmtpHost         = SmtpHost,
+                SmtpPort         = SmtpPort,
+                Username         = Username,
+                Password         = Password,
+                Protocol         = Protocol,
+                UnifiedInboxEnabled = UnifiedInboxEnabled,
+                CreatedAtUtc     = DateTime.UtcNow
+            };
+
+            db.Add(account);
+            db.SaveChangesAsync().GetAwaiter().GetResult();
+        }
+
         OnSaved?.Invoke();
     }
 }

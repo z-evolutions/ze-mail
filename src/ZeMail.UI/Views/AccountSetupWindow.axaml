@@ -52,6 +52,11 @@
 
             <!-- ── Schritt 1: Basis ── -->
             <StackPanel IsVisible="{Binding IsStep1}" Spacing="16">
+                <TextBlock Text="Kein Account nötig — ZE-Mail funktioniert auch als Kalender und Aufgaben-Manager ohne E-Mail-Konto."
+                            Foreground="#5050a0"
+                            FontSize="11"
+                            TextWrapping="Wrap"
+                            Margin="0,0,0,8"/>
                 <TextBlock Text="Deine Identität"
                            Foreground="#c0c0ff" FontSize="15" FontWeight="SemiBold"/>
 
@@ -161,7 +166,7 @@
             <!-- Buttons -->
             <Grid ColumnDefinitions="Auto,*,Auto,Auto">
                 <Button Grid.Column="0"
-                        Content="Abbrechen"
+                        Content="Überspringen"
                         Command="{Binding CancelCommand}"
                         Background="Transparent"
                         Foreground="#6060a0"

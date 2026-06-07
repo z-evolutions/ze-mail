@@ -6,7 +6,6 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="12.0.4" />
     <PackageReference Include="Avalonia.Desktop" Version="12.0.4" />
@@ -20,12 +19,12 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\ZeMail.UI\ZeMail.UI.csproj" />
-    <ProjectReference Include="..\ZeMail.Infrastructure\ZeMail.Infrastructure.csproj">
-      <Aliases>ZeMailInfra</Aliases>
-    </ProjectReference>
+    <ProjectReference Include="..\ZeMail.Infrastructure\ZeMail.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

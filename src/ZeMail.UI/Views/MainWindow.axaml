@@ -60,15 +60,14 @@
 
                 <!-- Neu-Button -->
                 <Button Grid.Column="3"
-                        Content="+ Neu"
-                        Background="#3a3aff"
-                        Foreground="White"
-                        FontSize="13"
-                        FontWeight="SemiBold"
-                        Padding="14,6"
-                        CornerRadius="6"
+                        Content="⚙"
+                        Command="{Binding OpenAccountSetupCommand}"
+                        Background="Transparent"
+                        Foreground="#6060a0"
+                        FontSize="18"
                         VerticalAlignment="Center"
-                        Margin="0,0,8,0"/>
+                        ToolTip.Tip="Einstellungen"
+                        Padding="10,6"/>
 
             </Grid>
         </Border>

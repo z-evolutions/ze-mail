@@ -1,0 +1,211 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:ZeMail.UI.ViewModels"
+        x:Class="ZeMail.UI.Views.AccountSetupWindow"
+        x:DataType="vm:AccountSetupViewModel"
+        Title="Account einrichten"
+        Icon="/Assets/zemail.ico"
+        Width="520" Height="480"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Background="#0f0f23">
+    <Window.Styles>
+        <Style Selector="TextBox">
+            <Setter Property="Background" Value="#1a1a3a"/>
+            <Setter Property="Foreground" Value="#e0e0ff"/>
+            <Setter Property="BorderBrush" Value="#3a3a6a"/>
+            <Setter Property="CaretBrush" Value="#7070ff"/>
+            <Setter Property="SelectionBrush" Value="#3a3aff"/>
+        </Style>
+        <Style Selector="TextBox:focus">
+            <Setter Property="Background" Value="#22224a"/>
+            <Setter Property="BorderBrush" Value="#7070ff"/>
+        </Style>
+        <Style Selector="TextBox:pointerover">
+            <Setter Property="Background" Value="#1e1e40"/>
+        </Style>
+        <Style Selector="TextBox /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="#1a1a3a"/>
+        </Style>
+        <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="#22224a"/>
+        </Style>
+        <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="#1e1e40"/>
+        </Style>
+    </Window.Styles>
+    <Border Padding="32">
+        <StackPanel Spacing="0">
+
+            <!-- Header -->
+            <TextBlock Text="Account einrichten"
+                       Foreground="#7070ff"
+                       FontSize="22"
+                       FontWeight="Bold"
+                       Margin="0,0,0,4"/>
+
+            <!-- Schrittanzeige -->
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,28">
+                <TextBlock Text="{Binding CurrentStep}" Foreground="#7070ff" FontWeight="Bold" FontSize="12"/>
+                <TextBlock Text="von 3" Foreground="#6060a0" FontSize="12"/>
+            </StackPanel>
+
+            <!-- ── Schritt 1: Basis ── -->
+            <StackPanel IsVisible="{Binding IsStep1}" Spacing="16">
+                <TextBlock Text="Deine Identität"
+                           Foreground="#c0c0ff" FontSize="15" FontWeight="SemiBold"/>
+
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Anzeigename" Foreground="#8080a0" FontSize="12"/>
+                    <TextBox Text="{Binding DisplayName}"
+                             PlaceholderText="z.B. Sascha Merken"
+                             Background="#1a1a3a" Foreground="#e0e0ff"
+                             BorderBrush="#3a3a6a" CornerRadius="6" Padding="10,8"/>
+                </StackPanel>
+
+                <StackPanel Spacing="6">
+                    <TextBlock Text="E-Mail-Adresse" Foreground="#8080a0" FontSize="12"/>
+                    <TextBox Text="{Binding EmailAddress}"
+                             PlaceholderText="name@example.com"
+                             Background="#1a1a3a" Foreground="#e0e0ff"
+                             BorderBrush="#3a3a6a" CornerRadius="6" Padding="10,8"/>
+                </StackPanel>
+
+                <TextBlock Text="Für bekannte Anbieter (Gmail, Outlook, Yahoo, iCloud) werden die Servereinstellungen automatisch ausgefüllt."
+                           Foreground="#5050a0" FontSize="11" TextWrapping="Wrap"/>
+            </StackPanel>
+
+            <!-- ── Schritt 2: Server ── -->
+            <StackPanel IsVisible="{Binding IsStep2}" Spacing="14">
+                <TextBlock Text="Servereinstellungen"
+                           Foreground="#c0c0ff" FontSize="15" FontWeight="SemiBold"/>
+
+                <Grid ColumnDefinitions="*,120" RowDefinitions="Auto,Auto">
+                    <StackPanel Grid.Row="0" Grid.Column="0" Spacing="6" Margin="0,0,8,0">
+                        <TextBlock Text="IMAP-Server" Foreground="#8080a0" FontSize="12"/>
+                        <TextBox Text="{Binding ImapHost}"
+                                 PlaceholderText="imap.example.com"
+                                 Background="#1a1a3a" Foreground="#e0e0ff"
+                                 BorderBrush="#3a3a6a" CornerRadius="6" Padding="10,8"/>
+                    </StackPanel>
+                    <StackPanel Grid.Row="0" Grid.Column="1" Spacing="6">
+                        <TextBlock Text="Port" Foreground="#8080a0" FontSize="12"/>
+                        <TextBox Text="{Binding ImapPort}"
+                                 Background="#1a1a3a" Foreground="#e0e0ff"
+                                 BorderBrush="#3a3a6a" CornerRadius="6" Padding="10,8"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="1" Grid.Column="0" Spacing="6" Margin="0,12,8,0">
+                        <TextBlock Text="SMTP-Server" Foreground="#8080a0" FontSize="12"/>
+                        <TextBox Text="{Binding SmtpHost}"
+                                 PlaceholderText="smtp.example.com"
+                                 Background="#1a1a3a" Foreground="#e0e0ff"
+                                 BorderBrush="#3a3a6a" CornerRadius="6" Padding="10,8"/>
+                    </StackPanel>
+                    <StackPanel Grid.Row="1" Grid.Column="1" Spacing="6" Margin="0,12,0,0">
+                        <TextBlock Text="Port" Foreground="#8080a0" FontSize="12"/>
+                        <TextBox Text="{Binding SmtpPort}"
+                                 Background="#1a1a3a" Foreground="#e0e0ff"
+                                 BorderBrush="#3a3a6a" CornerRadius="6" Padding="10,8"/>
+                    </StackPanel>
+                </Grid>
+
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Benutzername" Foreground="#8080a0" FontSize="12"/>
+                    <TextBox Text="{Binding Username}"
+                             PlaceholderText="meist deine E-Mail-Adresse"
+                             Background="#1a1a3a" Foreground="#e0e0ff"
+                             BorderBrush="#3a3a6a" CornerRadius="6" Padding="10,8"/>
+                </StackPanel>
+
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Passwort" Foreground="#8080a0" FontSize="12"/>
+                    <TextBox Text="{Binding Password}"
+                             PasswordChar="●"
+                             Background="#1a1a3a" Foreground="#e0e0ff"
+                             BorderBrush="#3a3a6a" CornerRadius="6" Padding="10,8"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- ── Schritt 3: Test ── -->
+            <StackPanel IsVisible="{Binding IsStep3}" Spacing="16">
+                <TextBlock Text="Verbindungstest"
+                        Foreground="#c0c0ff" FontSize="15" FontWeight="SemiBold"/>
+
+                <Border Background="#12122a" CornerRadius="8" Padding="16">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding DisplayName}" Foreground="#e0e0ff" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding EmailAddress}" Foreground="#6060a0" FontSize="12"/>
+                        <TextBlock Text="{Binding ImapHost}" Foreground="#6060a0" FontSize="12"/>
+                    </StackPanel>
+                </Border>
+
+                <Button Content="Verbindung testen"
+                    Command="{Binding TestConnectionCommand}"
+                    IsEnabled="{Binding IsTesting, Converter={x:Static BoolConverters.Not}}"
+                    Background="#2a2a4a"
+                    Foreground="#c0c0ff"
+                    CornerRadius="6"
+                    Padding="14,8"
+                    HorizontalAlignment="Left"/>
+
+                <TextBlock Text="{Binding StatusMessage}"
+                        Foreground="#a0a0ff"
+                        FontSize="13"
+                        TextWrapping="Wrap"/>
+            </StackPanel>
+
+            <!-- Spacer -->
+            <Panel Height="24"/>
+
+            <!-- Buttons -->
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                <Button Grid.Column="0"
+                        Content="Abbrechen"
+                        Command="{Binding CancelCommand}"
+                        Background="Transparent"
+                        Foreground="#6060a0"
+                        Padding="12,8"/>
+
+                <Button Grid.Column="2"
+                        Content="← Zurück"
+                        Command="{Binding PrevStepCommand}"
+                        IsVisible="{Binding IsStep2}"
+                        Background="#2a2a4a"
+                        Foreground="#c0c0ff"
+                        CornerRadius="6"
+                        Padding="14,8"
+                        Margin="0,0,8,0"/>
+
+                <Button Grid.Column="3"
+                        Content="Weiter →"
+                        Command="{Binding NextStepCommand}"
+                        IsVisible="{Binding IsStep1}"
+                        Background="#3a3aff"
+                        Foreground="White"
+                        CornerRadius="6"
+                        Padding="14,8"/>
+
+                <Button Grid.Column="3"
+                        Content="Weiter →"
+                        Command="{Binding NextStepCommand}"
+                        IsVisible="{Binding IsStep2}"
+                        Background="#3a3aff"
+                        Foreground="White"
+                        CornerRadius="6"
+                        Padding="14,8"/>
+
+                <Button Grid.Column="3"
+                        Content="Speichern"
+                        Command="{Binding SaveCommand}"
+                        IsVisible="{Binding IsStep3}"
+                        IsEnabled="{Binding TestSucceeded}"
+                        Background="#3a3aff"
+                        Foreground="White"
+                        CornerRadius="6"
+                        Padding="14,8"/>
+            </Grid>
+
+        </StackPanel>
+    </Border>
+</Window>

@@ -1,6 +1,9 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+using Avalonia.Controls.ApplicationLifetimes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ZeMail.UI.Views;
 
 namespace ZeMail.UI.ViewModels;
 
@@ -46,6 +49,22 @@ public partial class MainWindowViewModel : ViewModelBase
             "Tasks"    => TasksVM,
             _          => MailboxVM
         };
+    }
+
+    [RelayCommand]
+    private async Task OpenAccountSetup()
+    {
+        var vm  = new AccountSetupViewModel();
+        var win = new AccountSetupWindow { DataContext = vm };
+
+        vm.OnSaved     += () => win.Close();
+        vm.OnCancelled += () => win.Close();
+
+        if (Avalonia.Application.Current?.ApplicationLifetime
+            is IClassicDesktopStyleApplicationLifetime dt)
+        {
+            await win.ShowDialog(dt.MainWindow!);
+        }
     }
 }
 

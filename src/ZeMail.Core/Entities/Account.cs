@@ -11,6 +11,9 @@ public class Account
     public int SmtpPort { get; set; } = 465;
     public string Protocol { get; set; } = "IMAP";
     public string TlsMode { get; set; } = "Implicit";
+
+    public string Username { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty; // temporär – später Keystore
     public string AccentColor { get; set; } = "#5AC8FA";
     public bool UnifiedInboxEnabled { get; set; } = false;
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;

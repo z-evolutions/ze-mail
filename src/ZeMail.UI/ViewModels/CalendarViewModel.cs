@@ -8,6 +8,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using ZeMail.UI.Models;
+using ZeMail.UI.Views;
 
 namespace ZeMail.UI.ViewModels;
 
@@ -15,7 +16,6 @@ public enum CalendarViewMode { Month, Week, Day }
 
 public partial class CalendarViewModel : ViewModelBase
 {
-    // ── Ansichtsmodus ────────────────────────────────────────────────────────
     [ObservableProperty] private CalendarViewMode _viewMode = CalendarViewMode.Month;
 
     public bool IsMonthView => ViewMode == CalendarViewMode.Month;
@@ -31,33 +31,25 @@ public partial class CalendarViewModel : ViewModelBase
         _ = LoadEventsAsync();
     }
 
-    // ── Navigation ───────────────────────────────────────────────────────────
     [ObservableProperty] private DateTime _currentMonth     = new(DateTime.Today.Year, DateTime.Today.Month, 1);
     [ObservableProperty] private DateTime _currentWeekStart = DateTime.Today.AddDays(-(((int)DateTime.Today.DayOfWeek + 6) % 7));
     [ObservableProperty] private DateTime _currentDay       = DateTime.Today;
     [ObservableProperty] private string   _currentPeriodLabel = string.Empty;
-
-    // ── Aktuelle Uhrzeit ─────────────────────────────────────────────────────
-    // 60px pro Stunde → Offset in Pixel von oben
-    [ObservableProperty] private double _currentTimeOffset = 0;
-    [ObservableProperty] private bool   _showCurrentTimeLine = false;
+    [ObservableProperty] private double   _currentTimeOffset = 0;
+    [ObservableProperty] private bool     _showCurrentTimeLine = false;
 
     private Timer? _clockTimer;
 
-    // ── Kalenderraster ───────────────────────────────────────────────────────
     public ObservableCollection<CalendarDayViewModel> Days     { get; } = [];
     public ObservableCollection<CalendarDayViewModel> WeekDays { get; } = [];
     public ObservableCollection<string> WeekDayHeaders { get; } =
         ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
-    // ── Selektierter Tag ─────────────────────────────────────────────────────
     [ObservableProperty] private CalendarDayViewModel? _selectedDay;
     [ObservableProperty] private ObservableCollection<CalendarEventViewModel> _selectedDayEvents = [];
 
-    // ── Stunden ──────────────────────────────────────────────────────────────
     public ObservableCollection<string> HourLabels { get; } = [];
 
-    // ── Status ───────────────────────────────────────────────────────────────
     [ObservableProperty] private string _statusText = string.Empty;
 
     public CalendarViewModel()
@@ -66,10 +58,8 @@ public partial class CalendarViewModel : ViewModelBase
             HourLabels.Add($"{h:00}:00");
 
         UpdateCurrentTimeLine();
-        _clockTimer = new Timer(_ =>
-        {
-            UpdateCurrentTimeLine();
-        }, null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
+        _clockTimer = new Timer(_ => UpdateCurrentTimeLine(),
+            null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
 
         BuildCalendar();
         _ = LoadEventsAsync();
@@ -78,24 +68,22 @@ public partial class CalendarViewModel : ViewModelBase
     private void UpdateCurrentTimeLine()
     {
         var now = DateTime.Now;
-        CurrentTimeOffset    = now.Hour * 60.0 + now.Minute; // px (60px/h)
-        ShowCurrentTimeLine  = true;
+        CurrentTimeOffset   = now.Hour * 60.0 + now.Minute;
+        ShowCurrentTimeLine = true;
     }
 
-    // ── Ansicht wechseln ─────────────────────────────────────────────────────
     [RelayCommand] private void SetMonthView() => ViewMode = CalendarViewMode.Month;
     [RelayCommand] private void SetWeekView()  => ViewMode = CalendarViewMode.Week;
     [RelayCommand] private void SetDayView()   => ViewMode = CalendarViewMode.Day;
 
-    // ── Navigation ───────────────────────────────────────────────────────────
     [RelayCommand]
     private void Previous()
     {
         switch (ViewMode)
         {
-            case CalendarViewMode.Month: CurrentMonth     = CurrentMonth.AddMonths(-1);      break;
-            case CalendarViewMode.Week:  CurrentWeekStart = CurrentWeekStart.AddDays(-7);    break;
-            case CalendarViewMode.Day:   CurrentDay       = CurrentDay.AddDays(-1);          break;
+            case CalendarViewMode.Month: CurrentMonth     = CurrentMonth.AddMonths(-1);   break;
+            case CalendarViewMode.Week:  CurrentWeekStart = CurrentWeekStart.AddDays(-7); break;
+            case CalendarViewMode.Day:   CurrentDay       = CurrentDay.AddDays(-1);       break;
         }
         BuildCalendar();
         _ = LoadEventsAsync();
@@ -106,9 +94,9 @@ public partial class CalendarViewModel : ViewModelBase
     {
         switch (ViewMode)
         {
-            case CalendarViewMode.Month: CurrentMonth     = CurrentMonth.AddMonths(1);       break;
-            case CalendarViewMode.Week:  CurrentWeekStart = CurrentWeekStart.AddDays(7);     break;
-            case CalendarViewMode.Day:   CurrentDay       = CurrentDay.AddDays(1);           break;
+            case CalendarViewMode.Month: CurrentMonth     = CurrentMonth.AddMonths(1);   break;
+            case CalendarViewMode.Week:  CurrentWeekStart = CurrentWeekStart.AddDays(7); break;
+            case CalendarViewMode.Day:   CurrentDay       = CurrentDay.AddDays(1);       break;
         }
         BuildCalendar();
         _ = LoadEventsAsync();
@@ -139,7 +127,13 @@ public partial class CalendarViewModel : ViewModelBase
     [RelayCommand]
     private void NewEvent() => OpenEventEditor(null, SelectedDay?.Date ?? DateTime.Today);
 
-    // ── Kalender aufbauen ────────────────────────────────────────────────────
+    [RelayCommand]
+    private void EditEvent(CalendarEventViewModel? ev)
+    {
+        if (ev is null) return;
+        OpenEventEditor(ev, ev.StartUtc.ToLocalTime());
+    }
+
     private void BuildCalendar()
     {
         switch (ViewMode)
@@ -208,7 +202,6 @@ public partial class CalendarViewModel : ViewModelBase
         SelectedDay = WeekDays[0];
     }
 
-    // ── Events laden ─────────────────────────────────────────────────────────
     private async Task LoadEventsAsync()
     {
         if (App.Services is null) return;
@@ -263,5 +256,40 @@ public partial class CalendarViewModel : ViewModelBase
         }
     }
 
-    private void OpenEventEditor(CalendarEventViewModel? existing, DateTime date) { }
+    private void OpenEventEditor(CalendarEventViewModel? existing, DateTime date)
+    {
+        if (App.Services is null) return;
+
+        using var scope = App.Services.CreateScope();
+        var db = scope.ServiceProvider
+                      .GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
+        var account = db.Accounts.FirstOrDefault();
+        if (account is null) return;
+
+        var vm = existing is null
+            ? new EventEditorViewModel
+            {
+                AccountId = account.Id,
+                StartDate = new DateTimeOffset(date.Date),
+                EndDate   = new DateTimeOffset(date.Date),
+            }
+            : new EventEditorViewModel
+            {
+                EventId   = existing.Id,
+                AccountId = account.Id,
+                Title     = existing.Title,
+                Location  = existing.Location ?? string.Empty,
+                StartDate = new DateTimeOffset(existing.StartUtc.ToLocalTime().Date),
+                StartTime = existing.StartUtc.ToLocalTime().TimeOfDay,
+                EndDate   = new DateTimeOffset(existing.EndUtc.ToLocalTime().Date),
+                EndTime   = existing.EndUtc.ToLocalTime().TimeOfDay,
+                IsAllDay  = existing.IsAllDay,
+            };
+
+        var win = new EventEditorWindow { DataContext = vm };
+        vm.OnSaved     += () => { win.Close(); _ = LoadEventsAsync(); };
+        vm.OnDeleted   += () => { win.Close(); _ = LoadEventsAsync(); };
+        vm.OnCancelled += () => win.Close();
+        win.Show();
+    }
 }

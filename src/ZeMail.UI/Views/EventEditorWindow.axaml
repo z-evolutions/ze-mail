@@ -1,0 +1,125 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:ZeMail.UI.ViewModels"
+        x:Class="ZeMail.UI.Views.EventEditorWindow"
+        x:DataType="vm:EventEditorViewModel"
+        Title="{Binding WindowTitle}"
+        Icon="/Assets/zemail.ico"
+        Width="480" Height="500"
+        MinWidth="400" MinHeight="420"
+        WindowStartupLocation="CenterOwner"
+        Background="#0f0f23">
+
+    <Grid RowDefinitions="*,Auto" Margin="20">
+
+        <ScrollViewer Grid.Row="0">
+            <StackPanel Spacing="14">
+
+                <!-- Titel -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Titel *" Foreground="#8080a0" FontSize="12"/>
+                    <TextBox Text="{Binding Title}"
+                             PlaceholderText="Terminbezeichnung"
+                             CornerRadius="6" Padding="10,6"/>
+                </StackPanel>
+
+                <!-- Ort -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Ort" Foreground="#8080a0" FontSize="12"/>
+                    <TextBox Text="{Binding Location}"
+                             PlaceholderText="optional"
+                             CornerRadius="6" Padding="10,6"/>
+                </StackPanel>
+
+                <!-- Ganztägig -->
+                <CheckBox Content="Ganztägiger Termin"
+                          IsChecked="{Binding IsAllDay}"
+                          Foreground="#c0c0e0"/>
+
+                <!-- Start -->
+                <Grid ColumnDefinitions="*,16,120" IsVisible="{Binding !IsAllDay}">
+                    <StackPanel Grid.Column="0" Spacing="4">
+                        <TextBlock Text="Startdatum" Foreground="#8080a0" FontSize="12"/>
+                        <DatePicker SelectedDate="{Binding StartDate}"
+                                    CornerRadius="6"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Spacing="4">
+                        <TextBlock Text="Uhrzeit" Foreground="#8080a0" FontSize="12"/>
+                        <TimePicker SelectedTime="{Binding StartTime}"
+                                    CornerRadius="6"/>
+                    </StackPanel>
+                </Grid>
+
+                <StackPanel Spacing="4" IsVisible="{Binding IsAllDay}">
+                    <TextBlock Text="Startdatum" Foreground="#8080a0" FontSize="12"/>
+                    <DatePicker SelectedDate="{Binding StartDate}" CornerRadius="6"/>
+                </StackPanel>
+
+                <!-- Ende -->
+                <Grid ColumnDefinitions="*,16,120" IsVisible="{Binding !IsAllDay}">
+                    <StackPanel Grid.Column="0" Spacing="4">
+                        <TextBlock Text="Enddatum" Foreground="#8080a0" FontSize="12"/>
+                        <DatePicker SelectedDate="{Binding EndDate}" CornerRadius="6"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Spacing="4">
+                        <TextBlock Text="Uhrzeit" Foreground="#8080a0" FontSize="12"/>
+                        <TimePicker SelectedTime="{Binding EndTime}" CornerRadius="6"/>
+                    </StackPanel>
+                </Grid>
+
+                <StackPanel Spacing="4" IsVisible="{Binding IsAllDay}">
+                    <TextBlock Text="Enddatum" Foreground="#8080a0" FontSize="12"/>
+                    <DatePicker SelectedDate="{Binding EndDate}" CornerRadius="6"/>
+                </StackPanel>
+
+                <!-- Beschreibung -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Beschreibung" Foreground="#8080a0" FontSize="12"/>
+                    <TextBox Text="{Binding Description}"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             Height="80"
+                             CornerRadius="6" Padding="10,6"/>
+                </StackPanel>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Footer -->
+        <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,12,0,0">
+
+            <!-- Löschen -->
+            <Button Grid.Column="0"
+                    Content="🗑 Löschen"
+                    Command="{Binding DeleteCommand}"
+                    IsVisible="{Binding IsEditMode}"
+                    IsEnabled="{Binding !IsSaving}"
+                    Background="#4a1a1a" Foreground="#ff6060"
+                    CornerRadius="6" Padding="12,8"/>
+
+            <!-- Status -->
+            <TextBlock Grid.Column="1"
+                       Text="{Binding StatusMessage}"
+                       Foreground="#a0a0ff" FontSize="12"
+                       VerticalAlignment="Center"
+                       Margin="12,0"/>
+
+            <!-- Abbrechen -->
+            <Button Grid.Column="2"
+                    Content="Abbrechen"
+                    Command="{Binding CancelCommand}"
+                    Background="Transparent" Foreground="#6060a0"
+                    Padding="12,8" Margin="0,0,8,0"/>
+
+            <!-- Speichern -->
+            <Button Grid.Column="3"
+                    Content="Speichern ✓"
+                    Command="{Binding SaveCommand}"
+                    IsEnabled="{Binding !IsSaving}"
+                    Background="#3a3aff" Foreground="White"
+                    FontWeight="SemiBold" CornerRadius="6"
+                    Padding="16,8"/>
+        </Grid>
+
+    </Grid>
+</Window>

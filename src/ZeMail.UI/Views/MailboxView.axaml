@@ -80,14 +80,20 @@
         <Grid Grid.Column="2" RowDefinitions="Auto,*" Background="#0a0a1a">
 
             <!-- Header -->
-            <Border Grid.Row="0" Padding="24,16"
-                    BorderThickness="0,0,0,1" BorderBrush="#1a1a3a">
-                <StackPanel IsVisible="{Binding SelectedMessage, Converter={x:Static ObjectConverters.IsNotNull}}">
-                    <TextBlock Text="{Binding SelectedMessage.Subject}"
+            <Border Grid.Row="0" Padding="16,12"
+                    BorderThickness="0,0,0,1" BorderBrush="#1a1a3a"
+                    IsVisible="{Binding SelectedMessage, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <Grid RowDefinitions="Auto,Auto,Auto">
+
+                    <!-- Betreff -->
+                    <TextBlock Grid.Row="0"
+                               Text="{Binding SelectedMessage.Subject}"
                                FontSize="18" FontWeight="Bold"
                                Foreground="#e0e0ff" TextWrapping="Wrap"
                                Margin="0,0,0,8"/>
-                    <Grid ColumnDefinitions="*,Auto">
+
+                    <!-- Absender + Datum -->
+                    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
                         <StackPanel Grid.Column="0" Spacing="2">
                             <TextBlock Text="{Binding SelectedMessage.SenderDisplay}"
                                        Foreground="#c0c0ff" FontWeight="SemiBold" FontSize="13"/>
@@ -99,7 +105,24 @@
                                    Foreground="#6060a0" FontSize="12"
                                    VerticalAlignment="Center"/>
                     </Grid>
-                </StackPanel>
+
+                    <!-- Aktions-Buttons -->
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
+                        <Button Content="↩ Antworten"
+                                Command="{Binding ReplyCommand}"
+                                Background="#1a1a4a" Foreground="#c0c0ff"
+                                CornerRadius="6" Padding="10,6" FontSize="12"/>
+                        <Button Content="↩↩ Allen antworten"
+                                Command="{Binding ReplyAllCommand}"
+                                Background="#1a1a4a" Foreground="#c0c0ff"
+                                CornerRadius="6" Padding="10,6" FontSize="12"/>
+                        <Button Content="→ Weiterleiten"
+                                Command="{Binding ForwardCommand}"
+                                Background="#1a1a4a" Foreground="#c0c0ff"
+                                CornerRadius="6" Padding="10,6" FontSize="12"/>
+                    </StackPanel>
+
+                </Grid>
             </Border>
 
             <!-- NativeWebView Body -->

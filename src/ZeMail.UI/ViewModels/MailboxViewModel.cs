@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using ZeMail.UI.Models;
+using ZeMail.UI.Views;
 
 namespace ZeMail.UI.ViewModels;
 
@@ -216,6 +217,54 @@ public partial class MailboxViewModel : ViewModelBase
     {
         if (msg is null) return;
         msg.IsRead = true;
+    }
+
+    [RelayCommand]
+    private void Reply()     => OpenCompose(ComposeMode.Reply);
+
+    [RelayCommand]
+    private void ReplyAll()  => OpenCompose(ComposeMode.ReplyAll);
+
+    [RelayCommand]
+    private void Forward()   => OpenCompose(ComposeMode.Forward);
+
+    [RelayCommand]
+    private void NewMail()   => OpenCompose(ComposeMode.New);
+
+    private void OpenCompose(ComposeMode mode)
+    {
+        if (App.Services is null) return;
+
+        using var scope = App.Services.CreateScope();
+        var db = scope.ServiceProvider
+                    .GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
+        var account = db.Accounts.FirstOrDefault();
+        if (account is null) return;
+
+        var vm = new ComposeViewModel { AccountId = account.Id, Mode = mode };
+
+        if (mode == ComposeMode.Reply && SelectedMessage is not null)
+        {
+            vm.To      = SelectedMessage.FromAddress;
+            vm.Subject = "Re: " + SelectedMessage.Subject;
+            vm.Body    = $"\n\n--- Originalnachricht ---\nVon: {SelectedMessage.SenderDisplay}\n\n{SelectedMessage.BodyText}";
+        }
+        else if (mode == ComposeMode.ReplyAll && SelectedMessage is not null)
+        {
+            vm.To      = SelectedMessage.FromAddress;
+            vm.Subject = "Re: " + SelectedMessage.Subject;
+            vm.Body    = $"\n\n--- Originalnachricht ---\nVon: {SelectedMessage.SenderDisplay}\n\n{SelectedMessage.BodyText}";
+        }
+        else if (mode == ComposeMode.Forward && SelectedMessage is not null)
+        {
+            vm.Subject = "Fwd: " + SelectedMessage.Subject;
+            vm.Body    = $"\n\n--- Weitergeleitet ---\nVon: {SelectedMessage.SenderDisplay}\nBetreff: {SelectedMessage.Subject}\n\n{SelectedMessage.BodyText}";
+        }
+
+        var win = new ComposeWindow { DataContext = vm };
+        vm.OnSent      += () => win.Close();
+        vm.OnCancelled += () => win.Close();
+        win.Show();
     }
 
     // ── Demodaten ─────────────────────────────────────────────────────────────

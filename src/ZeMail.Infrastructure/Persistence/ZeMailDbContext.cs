@@ -7,20 +7,21 @@ namespace ZeMail.Infrastructure.Persistence;
 
 public class ZeMailDbContext : DbContext, IZeMailDbContext
 {
-    public DbSet<Account>             Accounts             => Set<Account>();
-    public DbSet<Folder>              Folders              => Set<Folder>();
-    public DbSet<Message>             Messages             => Set<Message>();
-    public DbSet<Attachment>          Attachments          => Set<Attachment>();
-    public DbSet<PendingOperation>    PendingOperations    => Set<PendingOperation>();
-    public DbSet<Signature>           Signatures           => Set<Signature>();
-    public DbSet<Rule>                Rules                => Set<Rule>();
-    public DbSet<Contact>             Contacts             => Set<Contact>();
-    public DbSet<ContactGroup>        ContactGroups        => Set<ContactGroup>();
-    public DbSet<ContactGroupMember>  ContactGroupMembers  => Set<ContactGroupMember>();
-    public DbSet<Tag>                 Tags                 => Set<Tag>();
-    public DbSet<MessageTag>          MessageTags          => Set<MessageTag>();
-    public DbSet<TaskItem>            Tasks                => Set<TaskItem>();
-    public DbSet<CalendarEvent>       CalendarEvents       => Set<CalendarEvent>();
+    public DbSet<Account>            Accounts            => Set<Account>();
+    public DbSet<Folder>             Folders             => Set<Folder>();
+    public DbSet<Message>            Messages            => Set<Message>();
+    public DbSet<Attachment>         Attachments         => Set<Attachment>();
+    public DbSet<PendingOperation>   PendingOperations   => Set<PendingOperation>();
+    public DbSet<Signature>          Signatures          => Set<Signature>();
+    public DbSet<Rule>               Rules               => Set<Rule>();
+    public DbSet<Contact>            Contacts            => Set<Contact>();
+    public DbSet<ContactGroup>       ContactGroups       => Set<ContactGroup>();
+    public DbSet<ContactGroupMember> ContactGroupMembers => Set<ContactGroupMember>();
+    public DbSet<Tag>                Tags                => Set<Tag>();
+    public DbSet<MessageTag>         MessageTags         => Set<MessageTag>();
+    public DbSet<TaskItem>           Tasks               => Set<TaskItem>();
+    public DbSet<TaskList>           TaskLists           => Set<TaskList>();
+    public DbSet<CalendarEvent>      CalendarEvents      => Set<CalendarEvent>();
 
     IQueryable<Account>            IZeMailDbContext.Accounts            => Set<Account>();
     IQueryable<Folder>             IZeMailDbContext.Folders             => Set<Folder>();
@@ -34,6 +35,7 @@ public class ZeMailDbContext : DbContext, IZeMailDbContext
     IQueryable<Tag>                IZeMailDbContext.Tags                => Set<Tag>();
     IQueryable<MessageTag>         IZeMailDbContext.MessageTags         => Set<MessageTag>();
     IQueryable<TaskItem>           IZeMailDbContext.Tasks               => Set<TaskItem>();
+    IQueryable<TaskList>           IZeMailDbContext.TaskLists           => Set<TaskList>();
     IQueryable<CalendarEvent>      IZeMailDbContext.CalendarEvents      => Set<CalendarEvent>();
 
     void IZeMailDbContext.Add<T>(T entity)    => base.Add(entity);
@@ -160,6 +162,21 @@ public class ZeMailDbContext : DbContext, IZeMailDbContext
              .OnDelete(DeleteBehavior.Cascade);
         });
 
+        // ── TaskList ────────────────────────────────────────────────────────
+        modelBuilder.Entity<TaskList>(e =>
+        {
+            e.HasKey(l => l.Id);
+            e.Property(l => l.Name).IsRequired().HasMaxLength(200);
+            e.Property(l => l.Color).IsRequired().HasMaxLength(7).HasDefaultValue("#7070ff");
+            e.Property(l => l.Icon).IsRequired().HasDefaultValue("📋");
+            e.HasOne(l => l.Account)
+             .WithMany()
+             .HasForeignKey(l => l.AccountId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(l => l.AccountId);
+        });
+
+        // ── TaskItem ────────────────────────────────────────────────────────
         modelBuilder.Entity<TaskItem>(e =>
         {
             e.HasKey(t => t.Id);
@@ -168,6 +185,11 @@ public class ZeMailDbContext : DbContext, IZeMailDbContext
              .WithMany(a => a.Tasks)
              .HasForeignKey(t => t.AccountId)
              .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(t => t.TaskList)
+             .WithMany(l => l.Tasks)
+             .HasForeignKey(t => t.TaskListId)
+             .OnDelete(DeleteBehavior.SetNull)
+             .IsRequired(false);
             e.HasOne(t => t.LinkedMessage)
              .WithMany(m => m.LinkedTasks)
              .HasForeignKey(t => t.LinkedMessageId)

@@ -2,6 +2,447 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:ZeMail.UI.ViewModels"
              x:Class="ZeMail.UI.Views.TasksView"
-             x:DataType="vm:TasksViewModel">
-    <TextBlock Text="Aufgaben" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="24"/>
+             x:DataType="vm:TasksViewModel"
+             Background="#1a1a2e">
+
+    <Grid ColumnDefinitions="260,*,Auto">
+
+        <!-- SPALTE 1 – Listen-Sidebar -->
+        <Border Grid.Column="0"
+                Background="#0f0f1a"
+                BorderThickness="0,0,1,0"
+                BorderBrush="#2a2a4a">
+            <DockPanel>
+
+                <Border DockPanel.Dock="Top"
+                        Padding="16,16,16,8"
+                        BorderThickness="0,0,0,1"
+                        BorderBrush="#2a2a4a">
+                    <TextBlock Text="Aufgaben"
+                               Foreground="#c0c0ff"
+                               FontSize="16"
+                               FontWeight="Bold"/>
+                </Border>
+
+                <Border DockPanel.Dock="Bottom" Padding="8,8">
+                    <Grid RowDefinitions="Auto,Auto">
+                        <Grid Grid.Row="0"
+                              IsVisible="{Binding IsAddingList}"
+                              ColumnDefinitions="*,Auto,Auto"
+                              Margin="0,0,0,4">
+                            <TextBox Grid.Column="0"
+                                     Text="{Binding NewListName}"
+                                     PlaceholderText="Listenname…"
+                                     Background="#1a1a3a"
+                                     Foreground="#c0c0e0"
+                                     BorderBrush="#3a3aff"
+                                     BorderThickness="1"
+                                     CornerRadius="6"
+                                     Padding="8,6"
+                                     FontSize="13"/>
+                            <Button Grid.Column="1" Content="✓"
+                                    Command="{Binding ConfirmAddListCommand}"
+                                    Background="#3a3aff" Foreground="White"
+                                    Width="30" Height="30" Margin="4,0,0,0"
+                                    CornerRadius="6" HorizontalContentAlignment="Center" FontSize="14"/>
+                            <Button Grid.Column="2" Content="✕"
+                                    Command="{Binding CancelAddListCommand}"
+                                    Background="#2a2a4a" Foreground="#8080a0"
+                                    Width="30" Height="30" Margin="4,0,0,0"
+                                    CornerRadius="6" HorizontalContentAlignment="Center" FontSize="14"/>
+                        </Grid>
+                        <Button Grid.Row="1"
+                                Command="{Binding BeginAddListCommand}"
+                                IsVisible="{Binding !IsAddingList}"
+                                Background="Transparent" Foreground="#6060a0"
+                                FontSize="13" Padding="8,6"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="+" FontSize="16" Foreground="#3a3aff"/>
+                                <TextBlock Text="Neue Liste" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding Lists}" Margin="8,4">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:TaskListViewModel">
+                                <Button Command="{Binding $parent[UserControl].DataContext.NavigateListCommand}"
+                                        CommandParameter="{Binding}"
+                                        Background="Transparent" BorderThickness="0"
+                                        Padding="10,8" Margin="0,2"
+                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                                    <Grid ColumnDefinitions="28,*,Auto">
+                                        <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="16" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                                   Foreground="#c0c0e0" FontSize="13"
+                                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding TaskCount}"
+                                                   Foreground="#6060a0" FontSize="12" VerticalAlignment="Center"
+                                                   IsVisible="{Binding TaskCount, Converter={x:Static vm:GreaterThanZeroConverter.Instance}}"/>
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
+        <!-- SPALTE 2 – Task-Liste -->
+        <Grid Grid.Column="1" RowDefinitions="Auto,*,Auto">
+
+            <!-- Header -->
+            <Border Grid.Row="0" Padding="24,20,24,12">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="{Binding SelectedList.Icon}" FontSize="22" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding SelectedList.Name}"
+                                   Foreground="#e0e0ff" FontSize="22" FontWeight="Bold"
+                                   VerticalAlignment="Center" IsVisible="{Binding !IsRenamingList}"/>
+                        <Grid IsVisible="{Binding IsRenamingList}" ColumnDefinitions="*,Auto,Auto">
+                            <TextBox Grid.Column="0" Text="{Binding RenameListText}"
+                                     Background="#1a1a3a" Foreground="#e0e0ff"
+                                     BorderBrush="#3a3aff" BorderThickness="1"
+                                     CornerRadius="6" Padding="8,4" FontSize="18" FontWeight="Bold" MinWidth="200"/>
+                            <Button Grid.Column="1" Content="✓" Command="{Binding ConfirmRenameListCommand}"
+                                    Background="#3a3aff" Foreground="White" Width="28" Height="28"
+                                    Margin="6,0,0,0" CornerRadius="6" HorizontalContentAlignment="Center" FontSize="13"/>
+                            <Button Grid.Column="2" Content="✕" Command="{Binding CancelRenameListCommand}"
+                                    Background="#2a2a4a" Foreground="#8080a0" Width="28" Height="28"
+                                    Margin="4,0,0,0" CornerRadius="6" HorizontalContentAlignment="Center" FontSize="13"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- Aktionen: Erledigt-Ansicht -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4"
+                                IsVisible="{Binding IsCompletedView}">
+                        <Button Content="↩ Alle wiederherstellen"
+                                Command="{Binding RestoreAllCompletedCommand}"
+                                Background="#2a2a4a" Foreground="#c0c0e0"
+                                FontSize="12" CornerRadius="6" Padding="10,6"
+                                HorizontalContentAlignment="Center"/>
+                        <Button Content="🗑 Alle löschen"
+                                Command="{Binding DeleteAllCompletedCommand}"
+                                Background="#3a1a1a" Foreground="#ff6060"
+                                FontSize="12" CornerRadius="6" Padding="10,6"
+                                HorizontalContentAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Aktionen: eigene Listen -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4"
+                                IsVisible="{Binding SelectedList.CanDelete}">
+                        <Button Content="✏" Command="{Binding BeginRenameListCommand}"
+                                CommandParameter="{Binding SelectedList}"
+                                Background="Transparent" Foreground="#6060a0"
+                                FontSize="16" Width="32" Height="32"
+                                HorizontalContentAlignment="Center" ToolTip.Tip="Liste umbenennen"/>
+                        <Button Content="🗑" Command="{Binding DeleteListCommand}"
+                                CommandParameter="{Binding SelectedList}"
+                                Background="Transparent" Foreground="#6060a0"
+                                FontSize="16" Width="32" Height="32"
+                                HorizontalContentAlignment="Center" ToolTip.Tip="Liste löschen"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Offene Tasks (mit Drag&Drop) -->
+            <ScrollViewer Grid.Row="1"
+                          VerticalScrollBarVisibility="Auto"
+                          Padding="16,0,16,0"
+                          IsVisible="{Binding !IsCompletedView}">
+                <ItemsControl ItemsSource="{Binding CurrentTasks}" x:Name="TaskListControl">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:TaskItemViewModel">
+                            <Border Margin="0,2" CornerRadius="8"
+                                    Background="#0f0f1a" BorderThickness="1" BorderBrush="#2a2a4a"
+                                    DragDrop.AllowDrop="True">
+                                <Grid ColumnDefinitions="32,44,*,Auto,Auto" MinHeight="48">
+
+                                    <!-- Drag-Handle -->
+                                    <TextBlock Grid.Column="0" Text="⠿"
+                                        Foreground="#3a3a6a" FontSize="18"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Cursor="SizeAll"
+                                        PointerPressed="OnDragHandlePressed"/>
+
+                                    <!-- Checkbox -->
+                                    <Button Grid.Column="1"
+                                            Command="{Binding $parent[UserControl].DataContext.ToggleCompleteCommand}"
+                                            CommandParameter="{Binding}"
+                                            Background="Transparent" BorderThickness="0"
+                                            Width="44" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+                                        <Border Width="20" Height="20" CornerRadius="10" BorderThickness="2" BorderBrush="#7070ff">
+                                            <Border.Background>
+                                                <SolidColorBrush Color="#3a3aff"
+                                                                 Opacity="{Binding IsCompleted, Converter={x:Static vm:BoolToDoubleConverter.Instance}}"/>
+                                            </Border.Background>
+                                            <TextBlock Text="✓" Foreground="White" FontSize="11" FontWeight="Bold"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                       IsVisible="{Binding IsCompleted}"/>
+                                        </Border>
+                                    </Button>
+
+                                    <!-- Titel -->
+                                    <Button Grid.Column="2"
+                                            Command="{Binding $parent[UserControl].DataContext.SelectTaskCommand}"
+                                            CommandParameter="{Binding}"
+                                            Background="Transparent" BorderThickness="0"
+                                            HorizontalContentAlignment="Left" VerticalContentAlignment="Center"
+                                            HorizontalAlignment="Stretch">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="Medium"
+                                                       TextTrimming="CharacterEllipsis">
+                                                <TextBlock.Foreground>
+                                                    <SolidColorBrush Color="#e0e0ff"
+                                                                     Opacity="{Binding IsCompleted, Converter={x:Static vm:BoolToFadedConverter.Instance}}"/>
+                                                </TextBlock.Foreground>
+                                            </TextBlock>
+                                            <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasDueDate}">
+                                                <TextBlock Text="{Binding DueDateDisplay}" Foreground="#6060a0" FontSize="11"/>
+                                                <TextBlock Text="{Binding PriorityIcon}" FontSize="11"
+                                                           IsVisible="{Binding PriorityIcon, Converter={x:Static vm:NotEmptyConverter.Instance}}"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Button>
+
+                                    <!-- Mein Tag -->
+                                    <Button Grid.Column="3"
+                                            Command="{Binding $parent[UserControl].DataContext.ToggleMyDayCommand}"
+                                            CommandParameter="{Binding}"
+                                            Background="Transparent" BorderThickness="0"
+                                            Width="36" Height="36" HorizontalContentAlignment="Center"
+                                            ToolTip.Tip="Mein Tag">
+                                        <TextBlock Text="☀" FontSize="16">
+                                            <TextBlock.Foreground>
+                                                <SolidColorBrush Color="#ffaa00"
+                                                                 Opacity="{Binding IsMyDay, Converter={x:Static vm:BoolToDoubleConverter.Instance}}"/>
+                                            </TextBlock.Foreground>
+                                        </TextBlock>
+                                    </Button>
+
+                                    <!-- Wichtig -->
+                                    <Button Grid.Column="4"
+                                            Command="{Binding $parent[UserControl].DataContext.ToggleImportantCommand}"
+                                            CommandParameter="{Binding}"
+                                            Background="Transparent" BorderThickness="0"
+                                            Width="36" Height="36" Margin="0,0,4,0"
+                                            HorizontalContentAlignment="Center" ToolTip.Tip="Wichtig">
+                                        <TextBlock Text="⭐" FontSize="16">
+                                            <TextBlock.Foreground>
+                                                <SolidColorBrush Color="#ffaa00"
+                                                                 Opacity="{Binding IsImportant, Converter={x:Static vm:BoolToDoubleConverter.Instance}}"/>
+                                            </TextBlock.Foreground>
+                                        </TextBlock>
+                                    </Button>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- Erledigt-Ansicht -->
+            <ScrollViewer Grid.Row="1"
+                          VerticalScrollBarVisibility="Auto"
+                          Padding="16,0,16,0"
+                          IsVisible="{Binding IsCompletedView}">
+                <ItemsControl ItemsSource="{Binding CompletedTasks}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:TaskItemViewModel">
+                            <Border Margin="0,2" CornerRadius="8"
+                                    Background="#0d1a12" BorderThickness="1" BorderBrush="#1a3a24">
+                                <Grid ColumnDefinitions="44,*,Auto" MinHeight="48">
+                                    <!-- Checkbox (wiederherstellen) -->
+                                    <Button Grid.Column="0"
+                                            Command="{Binding $parent[UserControl].DataContext.ToggleCompleteCommand}"
+                                            CommandParameter="{Binding}"
+                                            Background="Transparent" BorderThickness="0"
+                                            Width="44" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+                                        <Border Width="20" Height="20" CornerRadius="10" BorderThickness="2" BorderBrush="#40a060">
+                                            <Border.Background>
+                                                <SolidColorBrush Color="#40a060" Opacity="1"/>
+                                            </Border.Background>
+                                            <TextBlock Text="✓" Foreground="White" FontSize="11" FontWeight="Bold"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </Button>
+                                    <!-- Titel (durchgestrichen optisch) -->
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding Title}"
+                                               FontSize="14"
+                                               Foreground="#606080"
+                                               TextTrimming="CharacterEllipsis"
+                                               VerticalAlignment="Center"
+                                               TextDecorations="Strikethrough"/>
+                                    <!-- Löschen -->
+                                    <Button Grid.Column="2"
+                                            Command="{Binding $parent[UserControl].DataContext.DeleteTaskCommand}"
+                                            CommandParameter="{Binding}"
+                                            Background="Transparent" BorderThickness="0"
+                                            Width="36" Height="36" Margin="0,0,4,0"
+                                            HorizontalContentAlignment="Center" ToolTip.Tip="Löschen">
+                                        <TextBlock Text="🗑" FontSize="14" Foreground="#603030"/>
+                                    </Button>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- Inline-Eingabe (nur wenn nicht Erledigt-Ansicht) -->
+            <Border Grid.Row="2"
+                    Margin="16,8,16,16"
+                    CornerRadius="10" BorderThickness="1"
+                    BorderBrush="#3a3aff" Background="#0f0f1a"
+                    IsVisible="{Binding !IsCompletedView}">
+                <Panel>
+                    <Button IsVisible="{Binding !IsAddingTask}"
+                            Command="{Binding BeginAddTaskCommand}"
+                            Background="Transparent" BorderThickness="0"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="14,12">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <TextBlock Text="+" Foreground="#3a3aff" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+                            <TextBlock Text="Aufgabe hinzufügen" Foreground="#6060a0" FontSize="14" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Grid IsVisible="{Binding IsAddingTask}" ColumnDefinitions="*,Auto,Auto" Margin="14,8">
+                        <TextBox x:Name="NewTaskTextBox"
+                                 Grid.Column="0"
+                                 Text="{Binding NewTaskTitle}"
+                                 PlaceholderText="Aufgabe hinzufügen"
+                                 Background="Transparent" BorderThickness="0"
+                                 Foreground="#e0e0ff" FontSize="14" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Content="Hinzufügen"
+                                Command="{Binding ConfirmAddTaskCommand}"
+                                Background="#3a3aff" Foreground="White"
+                                FontSize="13" FontWeight="SemiBold" CornerRadius="6"
+                                Padding="12,6" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        <Button Grid.Column="2" Content="✕"
+                                Command="{Binding CancelAddTaskCommand}"
+                                Background="Transparent" Foreground="#6060a0"
+                                FontSize="14" Width="32" Height="32"
+                                Margin="4,0,0,0" HorizontalContentAlignment="Center"/>
+                    </Grid>
+                </Panel>
+            </Border>
+        </Grid>
+
+        <!-- SPALTE 3 – Detail-Panel -->
+        <Border Grid.Column="2"
+                IsVisible="{Binding IsDetailOpen}"
+                Width="320" Background="#0d0d1f"
+                BorderThickness="1,0,0,0" BorderBrush="#2a2a4a">
+            <Grid RowDefinitions="Auto,*,Auto"
+                  IsVisible="{Binding SelectedTask, Converter={x:Static vm:NotNullConverter.Instance}}">
+
+                <Border Grid.Row="0" Padding="16,16,12,12"
+                        BorderThickness="0,0,0,1" BorderBrush="#2a2a4a">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0" Text="{Binding SelectedTask.Title}"
+                                   Foreground="#e0e0ff" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                        <Button Grid.Column="1" Content="✕" Command="{Binding CloseDetailCommand}"
+                                Background="Transparent" Foreground="#6060a0"
+                                FontSize="16" Width="32" Height="32" HorizontalContentAlignment="Center"/>
+                    </Grid>
+                </Border>
+
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16">
+                    <StackPanel Spacing="16">
+                        <Border Background="#1a1a3a" CornerRadius="8" Padding="12,8">
+                            <StackPanel Spacing="4">
+                                <Button Command="{Binding ToggleMyDayCommand}"
+                                        CommandParameter="{Binding SelectedTask}"
+                                        Background="Transparent" BorderThickness="0"
+                                        HorizontalContentAlignment="Left" HorizontalAlignment="Stretch" Padding="0">
+                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                        <TextBlock Text="☀" FontSize="16"/>
+                                        <TextBlock Text="Zu meinem Tag hinzufügen" Foreground="#c0c0e0" FontSize="13" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Command="{Binding ToggleImportantCommand}"
+                                        CommandParameter="{Binding SelectedTask}"
+                                        Background="Transparent" BorderThickness="0"
+                                        HorizontalContentAlignment="Left" HorizontalAlignment="Stretch" Padding="0">
+                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                        <TextBlock Text="⭐" FontSize="16"/>
+                                        <TextBlock Text="Als wichtig markieren" Foreground="#c0c0e0" FontSize="13" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="#1a1a3a" CornerRadius="8" Padding="12">
+                            <StackPanel Spacing="8">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="📅" FontSize="15"/>
+                                    <TextBlock Text="Fälligkeitsdatum" Foreground="#8080a0" FontSize="12" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <CalendarDatePicker SelectedDate="{Binding SelectedTask.DueDate}"
+                                                    Background="#0f0f1a" Foreground="#c0c0e0"
+                                                    BorderBrush="#3a3a6a" BorderThickness="1" CornerRadius="6"
+                                                    HorizontalAlignment="Stretch" PlaceholderText="Datum wählen…"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="#1a1a3a" CornerRadius="8" Padding="12">
+                            <StackPanel Spacing="8">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="⬆" FontSize="15"/>
+                                    <TextBlock Text="Priorität" Foreground="#8080a0" FontSize="12" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <ComboBox SelectedItem="{Binding SelectedPriority}"
+                                          HorizontalAlignment="Stretch"
+                                          Background="#0f0f1a" Foreground="#c0c0e0" BorderBrush="#3a3a6a"
+                                          ItemsSource="{Binding PriorityOptions}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Label}" Foreground="#c0c0e0"/>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="#1a1a3a" CornerRadius="8" Padding="12">
+                            <StackPanel Spacing="8">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="📝" FontSize="15"/>
+                                    <TextBlock Text="Notizen" Foreground="#8080a0" FontSize="12" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <TextBox Text="{Binding SelectedTask.Notes}"
+                                         PlaceholderText="Notiz hinzufügen…"
+                                         Background="#0f0f1a" Foreground="#c0c0e0"
+                                         BorderBrush="#3a3a6a" BorderThickness="1" CornerRadius="6"
+                                         Padding="10,8" MinHeight="100" MaxHeight="200"
+                                         AcceptsReturn="True" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Text="Erstellt am …" Foreground="#404060" FontSize="11" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <Border Grid.Row="2" Padding="12,10" BorderThickness="0,1,0,0" BorderBrush="#2a2a4a">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Button Grid.Column="0" Content="Speichern"
+                                Command="{Binding SaveTaskDetailCommand}"
+                                Background="#3a3aff" Foreground="White"
+                                FontSize="13" FontWeight="SemiBold" CornerRadius="6" Padding="16,7"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                        <Button Grid.Column="1" Content="🗑"
+                                Command="{Binding DeleteTaskCommand}"
+                                CommandParameter="{Binding SelectedTask}"
+                                Background="Transparent" Foreground="#6060a0"
+                                FontSize="18" Width="40" Height="36" Margin="8,0,0,0"
+                                HorizontalContentAlignment="Center" ToolTip.Tip="Aufgabe löschen"/>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
 </UserControl>

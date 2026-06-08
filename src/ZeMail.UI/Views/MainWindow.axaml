@@ -80,7 +80,7 @@
                         ToolTip.Tip="Neue Mail"/>
 
             </Grid>
-        </Border>
+        </Border> 
 
         <!-- ── Hauptbereich ── -->
         <Grid Grid.Row="1" ColumnDefinitions="64,*">

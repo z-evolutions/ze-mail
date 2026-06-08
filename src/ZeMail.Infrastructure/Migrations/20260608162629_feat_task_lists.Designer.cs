@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ZeMail.Infrastructure.Persistence;
 
@@ -10,9 +11,11 @@ using ZeMail.Infrastructure.Persistence;
 namespace ZeMail.Infrastructure.Migrations
 {
     [DbContext(typeof(ZeMailDbContext))]
-    partial class ZeMailDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260608162629_feat_task_lists")]
+    partial class feat_task_lists
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.16");
@@ -578,9 +581,6 @@ namespace ZeMail.Infrastructure.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Priority")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("SortOrder")
                         .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("TaskListId")

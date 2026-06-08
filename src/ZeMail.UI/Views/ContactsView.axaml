@@ -11,7 +11,6 @@
                 BorderThickness="0,0,1,0" BorderBrush="#2a2a4a">
             <DockPanel>
 
-                <!-- Header -->
                 <Border DockPanel.Dock="Top" Padding="10,10"
                         BorderThickness="0,0,0,1" BorderBrush="#2a2a4a">
                     <Grid ColumnDefinitions="*,Auto">
@@ -28,7 +27,6 @@
                     </Grid>
                 </Border>
 
-                <!-- Gruppen-Editor -->
                 <Border DockPanel.Dock="Top" Padding="10,8"
                         BorderThickness="0,0,0,1" BorderBrush="#2a2a4a"
                         IsVisible="{Binding IsGroupEditMode}">
@@ -52,7 +50,7 @@
                     </StackPanel>
                 </Border>
 
-                <!-- ── WICHTIG: Bottom VOR der ListBox ── -->
+                <!-- Bottom VOR der ListBox -->
                 <Border DockPanel.Dock="Bottom" Padding="8,6"
                         BorderThickness="0,1,0,0" BorderBrush="#2a2a4a"
                         IsVisible="{Binding SelectedGroup.Id,
@@ -71,8 +69,8 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Grupplenliste (Fill) -->
-                <ListBox ItemsSource="{Binding Groups}"
+                <ListBox x:Name="GroupListBox"
+                         ItemsSource="{Binding Groups}"
                          SelectedItem="{Binding SelectedGroup}"
                          Background="Transparent">
                     <ListBox.ItemTemplate>
@@ -125,7 +123,8 @@
                     </Grid>
                 </Border>
 
-                <ListBox ItemsSource="{Binding FilteredContacts}"
+                <ListBox x:Name="ContactListBox"
+                         ItemsSource="{Binding FilteredContacts}"
                          SelectedItem="{Binding SelectedContact}"
                          Background="Transparent">
                     <ListBox.ItemTemplate>

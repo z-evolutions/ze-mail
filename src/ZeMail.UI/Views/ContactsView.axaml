@@ -3,5 +3,186 @@
              xmlns:vm="using:ZeMail.UI.ViewModels"
              x:Class="ZeMail.UI.Views.ContactsView"
              x:DataType="vm:ContactsViewModel">
-    <TextBlock Text="Kontakte" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="24"/>
+
+    <Grid ColumnDefinitions="280,*">
+
+        <!-- ── Linke Spalte: Kontaktliste ── -->
+        <Border Grid.Column="0" Background="#0a0a1a"
+                BorderThickness="0,0,1,0" BorderBrush="#2a2a4a">
+            <DockPanel>
+
+                <!-- Suchleiste + Neu-Button -->
+                <Border DockPanel.Dock="Top" Padding="12,10"
+                        BorderThickness="0,0,0,1" BorderBrush="#2a2a4a">
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="8">
+                        <Border Grid.Row="0" Grid.Column="0"
+                                Background="#1a1a3a" CornerRadius="6"
+                                Padding="8,4">
+                            <Grid ColumnDefinitions="Auto,*">
+                                <TextBlock Grid.Column="0" Text="🔍"
+                                           Foreground="#6060a0" FontSize="12"
+                                           VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBox Grid.Column="1"
+                                         Text="{Binding SearchText}"
+                                         PlaceholderText="Suchen…"
+                                         Background="Transparent"
+                                         BorderThickness="0"
+                                         Foreground="#c0c0e0"
+                                         FontSize="13"/>
+                            </Grid>
+                        </Border>
+                        <Button Grid.Row="0" Grid.Column="1"
+                                Content="+ Neu"
+                                Command="{Binding NewContactCommand}"
+                                Background="#3a3aff" Foreground="White"
+                                CornerRadius="6" Padding="10,5"
+                                Margin="8,0,0,0" FontSize="12"/>
+                    </Grid>
+                </Border>
+
+                <!-- Kontaktliste -->
+                <ListBox ItemsSource="{Binding FilteredContacts}"
+                         SelectedItem="{Binding SelectedContact}"
+                         Background="Transparent">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ContactItemViewModel">
+                            <Grid ColumnDefinitions="44,*" Margin="8,4">
+
+                                <!-- Avatar -->
+                                <Border Grid.Column="0"
+                                        Width="36" Height="36"
+                                        CornerRadius="18"
+                                        Background="#3a3aff">
+                                    <TextBlock Text="{Binding Initials}"
+                                               Foreground="White"
+                                               FontSize="13" FontWeight="Bold"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
+                                </Border>
+
+                                <!-- Name + E-Mail -->
+                                <StackPanel Grid.Column="1" Spacing="2"
+                                            VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding DisplayName}"
+                                               Foreground="#e0e0ff"
+                                               FontSize="13" FontWeight="SemiBold"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{Binding PrimaryEmail}"
+                                               Foreground="#6060a0"
+                                               FontSize="11"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                    <ListBox.Styles>
+                        <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#1e1e4a"/>
+                        </Style>
+                    </ListBox.Styles>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <!-- ── Rechte Spalte: Detailansicht / Bearbeiten ── -->
+        <ScrollViewer Grid.Column="1" Padding="28,24">
+            <StackPanel Spacing="16"
+                        IsVisible="{Binding HasSelection}">
+
+                <!-- Avatar + Name Header -->
+                <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,0,0,8">
+                    <Border Width="56" Height="56" CornerRadius="28"
+                            Background="#3a3aff">
+                        <Panel>
+                            <TextBlock Text="{Binding SelectedContact.Initials}"
+                                    Foreground="White" FontSize="20" FontWeight="Bold"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    IsVisible="{Binding !IsNewContact}"/>
+                            <TextBlock Text="+"
+                                    Foreground="White" FontSize="24" FontWeight="Bold"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    IsVisible="{Binding IsNewContact}"/>
+                        </Panel>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center" Spacing="4">
+                        <TextBlock Text="{Binding SelectedContact.DisplayName}"
+                                   Foreground="#e0e0ff" FontSize="20" FontWeight="Bold"
+                                   IsVisible="{Binding !IsNewContact}"/>
+                        <TextBlock Text="Neuer Kontakt"
+                                   Foreground="#7070ff" FontSize="20" FontWeight="Bold"
+                                   IsVisible="{Binding IsNewContact}"/>
+                        <TextBlock Text="{Binding SelectedContact.Organization}"
+                                   Foreground="#6060a0" FontSize="13"
+                                   IsVisible="{Binding !IsNewContact}"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Felder -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Name *" Foreground="#8080a0" FontSize="12"/>
+                    <TextBox Text="{Binding EditDisplayName}"
+                             PlaceholderText="Vor- und Nachname"
+                             CornerRadius="6" Padding="10,6"/>
+                </StackPanel>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Organisation" Foreground="#8080a0" FontSize="12"/>
+                    <TextBox Text="{Binding EditOrganization}"
+                             PlaceholderText="optional"
+                             CornerRadius="6" Padding="10,6"/>
+                </StackPanel>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="E-Mail" Foreground="#8080a0" FontSize="12"/>
+                    <TextBox Text="{Binding EditEmail}"
+                             PlaceholderText="mehrere mit Komma trennen"
+                             CornerRadius="6" Padding="10,6"/>
+                </StackPanel>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Telefon" Foreground="#8080a0" FontSize="12"/>
+                    <TextBox Text="{Binding EditPhone}"
+                             PlaceholderText="mehrere mit Komma trennen"
+                             CornerRadius="6" Padding="10,6"/>
+                </StackPanel>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Notizen" Foreground="#8080a0" FontSize="12"/>
+                    <TextBox Text="{Binding EditNotes}"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             Height="80"
+                             CornerRadius="6" Padding="10,6"/>
+                </StackPanel>
+
+                <!-- Aktionen -->
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,8,0,0">
+                    <Button Grid.Column="0"
+                            Content="🗑 Löschen"
+                            Command="{Binding DeleteCommand}"
+                            IsVisible="{Binding !IsNewContact}"
+                            Background="#4a1a1a" Foreground="#ff6060"
+                            CornerRadius="6" Padding="12,8"/>
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding StatusMessage}"
+                               Foreground="#a0a0ff" FontSize="12"
+                               VerticalAlignment="Center" Margin="12,0"/>
+                    <Button Grid.Column="2"
+                            Content="Mail schreiben"
+                            Background="#1a1a4a" Foreground="#c0c0ff"
+                            CornerRadius="6" Padding="12,8"
+                            Margin="0,0,8,0"
+                            IsVisible="{Binding !IsNewContact}"/>
+                    <Button Grid.Column="3"
+                            Content="Speichern ✓"
+                            Command="{Binding SaveCommand}"
+                            Background="#3a3aff" Foreground="White"
+                            FontWeight="SemiBold" CornerRadius="6"
+                            Padding="16,8"/>
+                </Grid>
+
+            </StackPanel>
+        </ScrollViewer>
+
+    </Grid>
 </UserControl>

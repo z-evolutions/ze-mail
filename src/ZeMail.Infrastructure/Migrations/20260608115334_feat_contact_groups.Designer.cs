@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ZeMail.Infrastructure.Persistence;
 
@@ -10,9 +11,11 @@ using ZeMail.Infrastructure.Persistence;
 namespace ZeMail.Infrastructure.Migrations
 {
     [DbContext(typeof(ZeMailDbContext))]
-    partial class ZeMailDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260608115334_feat_contact_groups")]
+    partial class feat_contact_groups
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.16");
@@ -238,46 +241,6 @@ namespace ZeMail.Infrastructure.Migrations
                     b.HasIndex("AccountId");
 
                     b.ToTable("Contacts");
-                });
-
-            modelBuilder.Entity("ZeMail.Core.Entities.ContactGroup", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Color")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Icon")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ContactGroups");
-                });
-
-            modelBuilder.Entity("ZeMail.Core.Entities.ContactGroupMember", b =>
-                {
-                    b.Property<Guid>("GroupId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("ContactId")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("GroupId", "ContactId");
-
-                    b.HasIndex("ContactId");
-
-                    b.ToTable("ContactGroupMembers");
                 });
 
             modelBuilder.Entity("ZeMail.Core.Entities.Folder", b =>
@@ -623,25 +586,6 @@ namespace ZeMail.Infrastructure.Migrations
                     b.Navigation("Account");
                 });
 
-            modelBuilder.Entity("ZeMail.Core.Entities.ContactGroupMember", b =>
-                {
-                    b.HasOne("ZeMail.Core.Entities.Contact", "Contact")
-                        .WithMany()
-                        .HasForeignKey("ContactId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ZeMail.Core.Entities.ContactGroup", "Group")
-                        .WithMany("Members")
-                        .HasForeignKey("GroupId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Contact");
-
-                    b.Navigation("Group");
-                });
-
             modelBuilder.Entity("ZeMail.Core.Entities.Folder", b =>
                 {
                     b.HasOne("ZeMail.Core.Entities.Account", "Account")
@@ -756,11 +700,6 @@ namespace ZeMail.Infrastructure.Migrations
                     b.Navigation("Tags");
 
                     b.Navigation("Tasks");
-                });
-
-            modelBuilder.Entity("ZeMail.Core.Entities.ContactGroup", b =>
-                {
-                    b.Navigation("Members");
                 });
 
             modelBuilder.Entity("ZeMail.Core.Entities.Folder", b =>

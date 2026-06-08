@@ -7,32 +7,34 @@ namespace ZeMail.Infrastructure.Persistence;
 
 public class ZeMailDbContext : DbContext, IZeMailDbContext
 {
-    // Konkrete DbSet-Properties für Infrastructure-internen Zugriff
-    public DbSet<Account>          Accounts          => Set<Account>();
-    public DbSet<Folder>           Folders           => Set<Folder>();
-    public DbSet<Message>          Messages          => Set<Message>();
-    public DbSet<Attachment>       Attachments       => Set<Attachment>();
-    public DbSet<PendingOperation> PendingOperations => Set<PendingOperation>();
-    public DbSet<Signature>        Signatures        => Set<Signature>();
-    public DbSet<Rule>             Rules             => Set<Rule>();
-    public DbSet<Contact>          Contacts          => Set<Contact>();
-    public DbSet<Tag>              Tags              => Set<Tag>();
-    public DbSet<MessageTag>       MessageTags       => Set<MessageTag>();
-    public DbSet<TaskItem>         Tasks             => Set<TaskItem>();
-    public DbSet<CalendarEvent>    CalendarEvents    => Set<CalendarEvent>();
+    public DbSet<Account>             Accounts             => Set<Account>();
+    public DbSet<Folder>              Folders              => Set<Folder>();
+    public DbSet<Message>             Messages             => Set<Message>();
+    public DbSet<Attachment>          Attachments          => Set<Attachment>();
+    public DbSet<PendingOperation>    PendingOperations    => Set<PendingOperation>();
+    public DbSet<Signature>           Signatures           => Set<Signature>();
+    public DbSet<Rule>                Rules                => Set<Rule>();
+    public DbSet<Contact>             Contacts             => Set<Contact>();
+    public DbSet<ContactGroup>        ContactGroups        => Set<ContactGroup>();
+    public DbSet<ContactGroupMember>  ContactGroupMembers  => Set<ContactGroupMember>();
+    public DbSet<Tag>                 Tags                 => Set<Tag>();
+    public DbSet<MessageTag>          MessageTags          => Set<MessageTag>();
+    public DbSet<TaskItem>            Tasks                => Set<TaskItem>();
+    public DbSet<CalendarEvent>       CalendarEvents       => Set<CalendarEvent>();
 
-    // IZeMailDbContext — explizite Interface-Implementierung
-    IQueryable<Account>       IZeMailDbContext.Accounts       => Set<Account>();
-    IQueryable<Folder>        IZeMailDbContext.Folders        => Set<Folder>();
-    IQueryable<Message>       IZeMailDbContext.Messages       => Set<Message>();
-    IQueryable<Attachment>    IZeMailDbContext.Attachments    => Set<Attachment>();
-    IQueryable<Rule>          IZeMailDbContext.Rules          => Set<Rule>();
-    IQueryable<Signature>     IZeMailDbContext.Signatures     => Set<Signature>();
-    IQueryable<Contact>       IZeMailDbContext.Contacts       => Set<Contact>();
-    IQueryable<Tag>           IZeMailDbContext.Tags           => Set<Tag>();
-    IQueryable<MessageTag>    IZeMailDbContext.MessageTags    => Set<MessageTag>();
-    IQueryable<TaskItem>      IZeMailDbContext.Tasks          => Set<TaskItem>();
-    IQueryable<CalendarEvent> IZeMailDbContext.CalendarEvents => Set<CalendarEvent>();
+    IQueryable<Account>            IZeMailDbContext.Accounts            => Set<Account>();
+    IQueryable<Folder>             IZeMailDbContext.Folders             => Set<Folder>();
+    IQueryable<Message>            IZeMailDbContext.Messages            => Set<Message>();
+    IQueryable<Attachment>         IZeMailDbContext.Attachments         => Set<Attachment>();
+    IQueryable<Rule>               IZeMailDbContext.Rules               => Set<Rule>();
+    IQueryable<Signature>          IZeMailDbContext.Signatures          => Set<Signature>();
+    IQueryable<Contact>            IZeMailDbContext.Contacts            => Set<Contact>();
+    IQueryable<ContactGroup>       IZeMailDbContext.ContactGroups       => Set<ContactGroup>();
+    IQueryable<ContactGroupMember> IZeMailDbContext.ContactGroupMembers => Set<ContactGroupMember>();
+    IQueryable<Tag>                IZeMailDbContext.Tags                => Set<Tag>();
+    IQueryable<MessageTag>         IZeMailDbContext.MessageTags         => Set<MessageTag>();
+    IQueryable<TaskItem>           IZeMailDbContext.Tasks               => Set<TaskItem>();
+    IQueryable<CalendarEvent>      IZeMailDbContext.CalendarEvents      => Set<CalendarEvent>();
 
     void IZeMailDbContext.Add<T>(T entity)    => base.Add(entity);
     void IZeMailDbContext.Remove<T>(T entity) => base.Remove(entity);
@@ -77,10 +79,7 @@ public class ZeMailDbContext : DbContext, IZeMailDbContext
              .OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<Attachment>(e =>
-        {
-            e.HasKey(x => x.Id);
-        });
+        modelBuilder.Entity<Attachment>(e => e.HasKey(x => x.Id));
 
         modelBuilder.Entity<PendingOperation>(e =>
         {
@@ -115,6 +114,25 @@ public class ZeMailDbContext : DbContext, IZeMailDbContext
              .HasForeignKey(x => x.AccountId)
              .OnDelete(DeleteBehavior.SetNull)
              .IsRequired(false);
+        });
+
+        modelBuilder.Entity<ContactGroup>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).IsRequired().HasMaxLength(200);
+        });
+
+        modelBuilder.Entity<ContactGroupMember>(e =>
+        {
+            e.HasKey(x => new { x.GroupId, x.ContactId });
+            e.HasOne(x => x.Group)
+             .WithMany(g => g.Members)
+             .HasForeignKey(x => x.GroupId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Contact)
+             .WithMany()
+             .HasForeignKey(x => x.ContactId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Tag>(e =>

@@ -45,7 +45,6 @@ public partial class ContactItemViewModel : ObservableObject
         var hash = MD5.HashData(Encoding.UTF8.GetBytes(PrimaryEmail.Trim().ToLower()));
         var hex  = Convert.ToHexString(hash).ToLower();
         var url  = $"https://www.gravatar.com/avatar/{hex}?d=404&s=80";
-
         try
         {
             using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
@@ -53,23 +52,30 @@ public partial class ContactItemViewModel : ObservableObject
             if (resp.IsSuccessStatusCode)
                 AvatarUrl = url;
         }
-        catch { /* kein Gravatar → Initials-Fallback */ }
+        catch { }
     }
+}
+
+public partial class ContactGroupViewModel : ObservableObject
+{
+    public Guid   Id   { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string Icon { get; init; } = "👥";
+    public string Color { get; init; } = "#3a3aff";
 }
 
 public partial class ContactsViewModel : ViewModelBase
 {
-    public ObservableCollection<ContactItemViewModel> AllContacts      { get; } = [];
-    public ObservableCollection<ContactItemViewModel> FilteredContacts { get; } = [];
+    // ── Listen ───────────────────────────────────────────────────────────────
+    public ObservableCollection<ContactItemViewModel>  AllContacts      { get; } = [];
+    public ObservableCollection<ContactItemViewModel>  FilteredContacts { get; } = [];
+    public ObservableCollection<ContactGroupViewModel> Groups           { get; } = [];
 
-    [ObservableProperty] private ContactItemViewModel? _selectedContact;
-    [ObservableProperty] private string _searchText    = string.Empty;
-    [ObservableProperty] private string _statusMessage = string.Empty;
-    [ObservableProperty] private bool   _hasSelection  = false;
-    [ObservableProperty] private bool   _isNewContact  = false;
-    [ObservableProperty] private bool   _isEditMode    = false;
+    // ── Selektion ────────────────────────────────────────────────────────────
+    [ObservableProperty] private ContactItemViewModel?  _selectedContact;
+    [ObservableProperty] private ContactGroupViewModel? _selectedGroup;
 
-    // Edit-Felder
+    // ── Edit-Felder Kontakt ──────────────────────────────────────────────────
     [ObservableProperty] private string _editDisplayName  = string.Empty;
     [ObservableProperty] private string _editOrganization = string.Empty;
     [ObservableProperty] private string _editDepartment   = string.Empty;
@@ -82,24 +88,74 @@ public partial class ContactsViewModel : ViewModelBase
     [ObservableProperty] private string _editCountry      = string.Empty;
     [ObservableProperty] private string _editNotes        = string.Empty;
 
-    public ContactsViewModel() => LoadContacts();
+    // ── Edit-Felder Gruppe ───────────────────────────────────────────────────
+    [ObservableProperty] private string _editGroupName  = string.Empty;
+    [ObservableProperty] private string _editGroupIcon  = "👥";
+    [ObservableProperty] private bool   _isGroupEditMode = false;
+    [ObservableProperty] private bool   _isNewGroup      = false;
 
-    public void LoadContacts()
+    // ── Suche + Status ───────────────────────────────────────────────────────
+    [ObservableProperty] private string _searchText    = string.Empty;
+    [ObservableProperty] private string _statusMessage = string.Empty;
+    [ObservableProperty] private bool   _hasSelection  = false;
+    [ObservableProperty] private bool   _isNewContact  = false;
+    [ObservableProperty] private bool   _isEditMode    = false;
+
+    public ContactsViewModel()
+    {
+        LoadGroups();
+        LoadContacts();
+    }
+
+    // ── Gruppen laden ─────────────────────────────────────────────────────────
+    public void LoadGroups()
     {
         if (App.Services is null) return;
-
         using var scope = App.Services.CreateScope();
         var db = scope.ServiceProvider
                       .GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
 
+        Groups.Clear();
+        // "Alle" als erste Gruppe
+        Groups.Add(new ContactGroupViewModel { Id = Guid.Empty, Name = "Alle Kontakte", Icon = "👤" });
+        foreach (var g in db.ContactGroups.OrderBy(g => g.Name).ToList())
+        {
+            Groups.Add(new ContactGroupViewModel
+            {
+                Id    = g.Id,
+                Name  = g.Name,
+                Icon  = g.Icon  ?? "👥",
+                Color = g.Color ?? "#3a3aff",
+            });
+        }
+        SelectedGroup = Groups.FirstOrDefault();
+    }
+
+    // ── Kontakte laden ────────────────────────────────────────────────────────
+    public void LoadContacts()
+    {
+        if (App.Services is null) return;
+        using var scope = App.Services.CreateScope();
+        var db = scope.ServiceProvider
+                      .GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
+
+        var groupId = SelectedGroup?.Id ?? Guid.Empty;
+
+        var contacts = groupId == Guid.Empty
+            ? db.Contacts.OrderBy(c => c.DisplayName).ToList()
+            : db.ContactGroupMembers
+                .Where(m => m.GroupId == groupId)
+                .Select(m => m.Contact)
+                .OrderBy(c => c.DisplayName)
+                .ToList();
+
         AllContacts.Clear();
         FilteredContacts.Clear();
 
-        foreach (var c in db.Contacts.OrderBy(c => c.DisplayName).ToList())
+        foreach (var c in contacts)
         {
             var emails = TryParseJson(c.EmailsJson);
             var phones = TryParseJson(c.PhonesJson);
-
             var vm = new ContactItemViewModel
             {
                 Id           = c.Id,
@@ -125,6 +181,12 @@ public partial class ContactsViewModel : ViewModelBase
         SelectedContact = FilteredContacts.FirstOrDefault();
     }
 
+    partial void OnSelectedGroupChanged(ContactGroupViewModel? value)
+    {
+        SearchText = string.Empty;
+        LoadContacts();
+    }
+
     partial void OnSearchTextChanged(string value)
     {
         FilteredContacts.Clear();
@@ -146,7 +208,6 @@ public partial class ContactsViewModel : ViewModelBase
         IsEditMode    = false;
         IsNewContact  = false;
         StatusMessage = string.Empty;
-
         if (value is null) return;
 
         EditDisplayName  = value.DisplayName;
@@ -162,6 +223,7 @@ public partial class ContactsViewModel : ViewModelBase
         EditNotes        = value.Notes;
     }
 
+    // ── Kontakt Commands ──────────────────────────────────────────────────────
     [RelayCommand]
     private void NewContact()
     {
@@ -173,16 +235,13 @@ public partial class ContactsViewModel : ViewModelBase
         EditNotes        = StatusMessage = string.Empty;
     }
 
-    [RelayCommand]
-    private void Edit() => IsEditMode = true;
-
+    [RelayCommand] private void Edit()       => IsEditMode = true;
     [RelayCommand]
     private void CancelEdit()
     {
         if (IsNewContact) { IsNewContact = IsEditMode = HasSelection = false; return; }
         IsEditMode = false;
-        if (SelectedContact is not null)
-            OnSelectedContactChanged(SelectedContact);
+        if (SelectedContact is not null) OnSelectedContactChanged(SelectedContact);
     }
 
     [RelayCommand]
@@ -204,7 +263,7 @@ public partial class ContactsViewModel : ViewModelBase
 
         if (IsNewContact)
         {
-            db.Add(new Contact
+            var newContact = new Contact
             {
                 DisplayName  = EditDisplayName,
                 Organization = NullIfEmpty(EditOrganization),
@@ -217,7 +276,20 @@ public partial class ContactsViewModel : ViewModelBase
                 PostalCode   = NullIfEmpty(EditPostalCode),
                 Country      = NullIfEmpty(EditCountry),
                 Notes        = NullIfEmpty(EditNotes),
-            });
+            };
+            db.Add(newContact);
+
+            // In aktuelle Gruppe eintragen wenn nicht "Alle"
+            await db.SaveChangesAsync();
+            if (SelectedGroup is not null && SelectedGroup.Id != Guid.Empty)
+            {
+                db.Add(new ContactGroupMember
+                {
+                    GroupId   = SelectedGroup.Id,
+                    ContactId = newContact.Id,
+                });
+                await db.SaveChangesAsync();
+            }
         }
         else if (SelectedContact is not null)
         {
@@ -236,10 +308,10 @@ public partial class ContactsViewModel : ViewModelBase
                 c.Country      = NullIfEmpty(EditCountry);
                 c.Notes        = NullIfEmpty(EditNotes);
                 c.UpdatedAtUtc = DateTime.UtcNow;
+                await db.SaveChangesAsync();
             }
         }
 
-        await db.SaveChangesAsync();
         StatusMessage = "✓ Gespeichert";
         IsEditMode = IsNewContact = false;
         LoadContacts();
@@ -249,14 +321,11 @@ public partial class ContactsViewModel : ViewModelBase
     private async Task DeleteAsync()
     {
         if (SelectedContact is null || App.Services is null) return;
-
         using var scope = App.Services.CreateScope();
         var db = scope.ServiceProvider
                       .GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
-
         var c = db.Contacts.FirstOrDefault(x => x.Id == SelectedContact.Id);
         if (c is null) return;
-
         db.Remove(c);
         await db.SaveChangesAsync();
         LoadContacts();
@@ -266,25 +335,91 @@ public partial class ContactsViewModel : ViewModelBase
     private void WriteMail()
     {
         if (SelectedContact is null || App.Services is null) return;
-
         using var scope = App.Services.CreateScope();
         var db = scope.ServiceProvider
                       .GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
         var account = db.Accounts.FirstOrDefault();
         if (account is null) return;
 
-        var vm = new ComposeViewModel
-        {
-            AccountId = account.Id,
-            To        = SelectedContact.PrimaryEmail,
-        };
-
+        var vm  = new ComposeViewModel { AccountId = account.Id, To = SelectedContact.PrimaryEmail };
         var win = new ComposeWindow { DataContext = vm };
         vm.OnSent      += () => win.Close();
         vm.OnCancelled += () => win.Close();
         win.Show();
     }
 
+    // ── Gruppen Commands ──────────────────────────────────────────────────────
+    [RelayCommand]
+    private void NewGroup()
+    {
+        IsGroupEditMode = IsNewGroup = true;
+        EditGroupName   = string.Empty;
+        EditGroupIcon   = "👥";
+    }
+
+    [RelayCommand]
+    private void EditGroup()
+    {
+        if (SelectedGroup is null || SelectedGroup.Id == Guid.Empty) return;
+        IsGroupEditMode = true;
+        IsNewGroup      = false;
+        EditGroupName   = SelectedGroup.Name;
+        EditGroupIcon   = SelectedGroup.Icon;
+    }
+
+    [RelayCommand]
+    private async Task SaveGroupAsync()
+    {
+        if (string.IsNullOrWhiteSpace(EditGroupName)) return;
+        if (App.Services is null) return;
+
+        using var scope = App.Services.CreateScope();
+        var db = scope.ServiceProvider
+                      .GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
+
+        if (IsNewGroup)
+        {
+            db.Add(new ContactGroup
+            {
+                Name = EditGroupName,
+                Icon = EditGroupIcon,
+            });
+        }
+        else if (SelectedGroup is not null && SelectedGroup.Id != Guid.Empty)
+        {
+            var g = db.ContactGroups.FirstOrDefault(x => x.Id == SelectedGroup.Id);
+            if (g is not null)
+            {
+                g.Name = EditGroupName;
+                g.Icon = EditGroupIcon;
+            }
+        }
+
+        await db.SaveChangesAsync();
+        IsGroupEditMode = IsNewGroup = false;
+        LoadGroups();
+    }
+
+    [RelayCommand]
+    private async Task DeleteGroupAsync()
+    {
+        if (SelectedGroup is null || SelectedGroup.Id == Guid.Empty || App.Services is null) return;
+
+        using var scope = App.Services.CreateScope();
+        var db = scope.ServiceProvider
+                      .GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
+
+        var g = db.ContactGroups.FirstOrDefault(x => x.Id == SelectedGroup.Id);
+        if (g is null) return;
+        db.Remove(g);
+        await db.SaveChangesAsync();
+        LoadGroups();
+    }
+
+    [RelayCommand]
+    private void CancelGroupEdit() => IsGroupEditMode = IsNewGroup = false;
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
     private static string[] SplitInput(string s) =>
         s.Split(',', ';').Select(x => x.Trim()).Where(x => x.Length > 0).ToArray();
 

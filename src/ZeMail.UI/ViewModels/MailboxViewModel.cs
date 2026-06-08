@@ -61,6 +61,15 @@ public partial class MailboxViewModel : ViewModelBase
         Folders.Clear();
         foreach (var account in accounts)
         {
+            // Account-Header
+            Folders.Add(new FolderViewModel
+            {
+                IsAccountHeader = true,
+                AccountName     = account.Name,
+                Name            = account.Name,
+                FullPath        = string.Empty
+            });
+
             var folders = db.Folders
                 .Where(f => f.AccountId == account.Id)
                 .OrderBy(f => f.FullPath)
@@ -70,9 +79,10 @@ public partial class MailboxViewModel : ViewModelBase
             {
                 Folders.Add(new FolderViewModel
                 {
-                    Id       = folder.Id,
-                    Name     = folder.Name,
-                    FullPath = folder.FullPath
+                    Id          = folder.Id,
+                    Name        = folder.Name,
+                    FullPath    = folder.FullPath,
+                    AccountName = account.Name
                 });
             }
         }
@@ -196,7 +206,7 @@ public partial class MailboxViewModel : ViewModelBase
     partial void OnSelectedFolderChanged(FolderViewModel? value)
     {
         SelectedMessage = null;
-        if (value is not null && App.Services is not null)
+        if (value is not null && !value.IsAccountHeader && App.Services is not null)
             LoadMessagesForFolder(value);
     }
 

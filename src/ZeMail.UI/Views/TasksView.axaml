@@ -187,6 +187,7 @@
                                     </Button>
 
                                     <!-- Titel -->
+                                    <!-- Titel -->
                                     <Button Grid.Column="2"
                                             Command="{Binding $parent[UserControl].DataContext.SelectTaskCommand}"
                                             CommandParameter="{Binding}"
@@ -201,10 +202,15 @@
                                                                      Opacity="{Binding IsCompleted, Converter={x:Static vm:BoolToFadedConverter.Instance}}"/>
                                                 </TextBlock.Foreground>
                                             </TextBlock>
-                                            <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasDueDate}">
-                                                <TextBlock Text="{Binding DueDateDisplay}" Foreground="#6060a0" FontSize="11"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <TextBlock Text="{Binding DueDateDisplay}"
+                                                           Foreground="#6060a0" FontSize="11"
+                                                           IsVisible="{Binding HasDueDate}"/>
                                                 <TextBlock Text="{Binding PriorityIcon}" FontSize="11"
                                                            IsVisible="{Binding PriorityIcon, Converter={x:Static vm:NotEmptyConverter.Instance}}"/>
+                                                <TextBlock Text="📝" FontSize="11"
+                                                           ToolTip.Tip="Notiz vorhanden"
+                                                           IsVisible="{Binding HasNotes}"/>
                                             </StackPanel>
                                         </StackPanel>
                                     </Button>

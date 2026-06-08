@@ -34,6 +34,7 @@ public partial class TaskItemViewModel : ViewModelBase
         : string.Empty;
 
     public bool HasDueDate => DueDate.HasValue;
+    public bool HasNotes   => !string.IsNullOrWhiteSpace(Notes);
 
     public string PriorityIcon => Priority switch
     {
@@ -77,6 +78,11 @@ public partial class TaskItemViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(DueDateDisplay));
         OnPropertyChanged(nameof(HasDueDate));
+    }
+
+    partial void OnNotesChanged(string? value)
+    {
+        OnPropertyChanged(nameof(HasNotes));
     }
 }
 
@@ -156,8 +162,6 @@ public partial class TasksViewModel : ViewModelBase, IDisposable
 
     private readonly List<TaskItemViewModel> _allTasks = [];
     public ObservableCollection<TaskItemViewModel> CurrentTasks { get; } = [];
-
-    // Erledigt-Liste: nur sichtbar in "Erledigt"-View
     public ObservableCollection<TaskItemViewModel> CompletedTasks { get; } = [];
 
     [ObservableProperty] private bool _isCompletedView;
@@ -169,8 +173,6 @@ public partial class TasksViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private bool _isRenamingList;
     [ObservableProperty] private string _renameListText = string.Empty;
     [ObservableProperty] private bool _isDetailOpen;
-
-    // Drag&Drop
     [ObservableProperty] private TaskItemViewModel? _draggedTask;
 
     private List<Account> _accounts = [];
@@ -190,13 +192,10 @@ public partial class TasksViewModel : ViewModelBase, IDisposable
     private async Task LoadAsync()
     {
         if (_db is null) return;
-
         _accounts         = await Task.Run(() => _db.Accounts.ToList());
         _defaultAccountId = _accounts.FirstOrDefault()?.Id ?? Guid.Empty;
-
         await BuildListsAsync();
         await LoadTasksAsync();
-
         SelectedList = Lists.FirstOrDefault();
     }
 
@@ -215,7 +214,6 @@ public partial class TasksViewModel : ViewModelBase, IDisposable
             .OrderBy(l => l.SortOrder)
             .ThenBy(l => l.Name)
             .ToList());
-
         foreach (var l in dbLists)
             Lists.Add(new TaskListViewModel(l));
     }
@@ -224,15 +222,12 @@ public partial class TasksViewModel : ViewModelBase, IDisposable
     {
         if (_db is null) return;
         _allTasks.Clear();
-
         var entities = await Task.Run(() => _db.Tasks
             .OrderBy(t => t.SortOrder)
             .ThenBy(t => t.CreatedAtUtc)
             .ToList());
-
         foreach (var e in entities)
             _allTasks.Add(new TaskItemViewModel(e));
-
         RefreshCurrentTasks();
         UpdateTaskCounts();
     }
@@ -243,7 +238,6 @@ public partial class TasksViewModel : ViewModelBase, IDisposable
         CompletedTasks.Clear();
         if (SelectedList is null) return;
 
-        // Erledigt-Ansicht
         if (SelectedList.SystemKey == "completed")
         {
             IsCompletedView = true;
@@ -253,7 +247,6 @@ public partial class TasksViewModel : ViewModelBase, IDisposable
         }
 
         IsCompletedView = false;
-
         IEnumerable<TaskItemViewModel> filtered = SelectedList.SystemKey switch
         {
             "myday"     => _allTasks.Where(t => t.IsMyDay     && !t.IsCompleted),
@@ -262,7 +255,6 @@ public partial class TasksViewModel : ViewModelBase, IDisposable
             "all"       => _allTasks.Where(t => !t.IsCompleted),
             _           => _allTasks.Where(t => t.TaskListId == SelectedList.Id && !t.IsCompleted)
         };
-
         foreach (var t in filtered.OrderBy(t => t.SortOrder).ThenByDescending(t => t.IsImportant).ThenBy(t => t.DueDate))
             CurrentTasks.Add(t);
     }
@@ -300,14 +292,10 @@ public partial class TasksViewModel : ViewModelBase, IDisposable
     private void MoveTask(TaskItemViewModel target)
     {
         if (DraggedTask is null || DraggedTask == target) return;
-
         var fromIndex = CurrentTasks.IndexOf(DraggedTask);
         var toIndex   = CurrentTasks.IndexOf(target);
         if (fromIndex < 0 || toIndex < 0) return;
-
         CurrentTasks.Move(fromIndex, toIndex);
-
-        // SortOrder neu setzen und speichern
         _ = PersistSortOrderAsync();
     }
 
@@ -328,10 +316,7 @@ public partial class TasksViewModel : ViewModelBase, IDisposable
     {
         if (_db is null) return;
         foreach (var t in _allTasks.Where(t => t.IsCompleted).ToList())
-        {
-            t.IsCompleted = false;
-            t.ToEntity();
-        }
+        { t.IsCompleted = false; t.ToEntity(); }
         await _db.SaveChangesAsync();
         RefreshCurrentTasks();
         UpdateTaskCounts();
@@ -343,10 +328,7 @@ public partial class TasksViewModel : ViewModelBase, IDisposable
         if (_db is null) return;
         var completed = _allTasks.Where(t => t.IsCompleted).ToList();
         foreach (var t in completed)
-        {
-            _db.Remove(t.ToEntity());
-            _allTasks.Remove(t);
-        }
+        { _db.Remove(t.ToEntity()); _allTasks.Remove(t); }
         await _db.SaveChangesAsync();
         if (SelectedTask is not null && SelectedTask.IsCompleted)
         { SelectedTask = null; IsDetailOpen = false; }
@@ -362,10 +344,7 @@ public partial class TasksViewModel : ViewModelBase, IDisposable
     private async Task ConfirmAddTask()
     {
         if (string.IsNullOrWhiteSpace(NewTaskTitle) || _db is null)
-        {
-            IsAddingTask = false;
-            return;
-        }
+        { IsAddingTask = false; return; }
 
         var entity = new TaskItem
         {
@@ -387,7 +366,6 @@ public partial class TasksViewModel : ViewModelBase, IDisposable
         _allTasks.Add(vm);
         RefreshCurrentTasks();
         UpdateTaskCounts();
-
         NewTaskTitle = string.Empty;
         IsAddingTask = false;
     }
@@ -397,11 +375,7 @@ public partial class TasksViewModel : ViewModelBase, IDisposable
 
     // ── Task-Aktionen ───────────────────────────────────────────────────────
     [RelayCommand]
-    private void SelectTask(TaskItemViewModel task)
-    {
-        SelectedTask = task;
-        IsDetailOpen = true;
-    }
+    private void SelectTask(TaskItemViewModel task) { SelectedTask = task; IsDetailOpen = true; }
 
     [RelayCommand]
     private async Task ToggleComplete(TaskItemViewModel task)
@@ -452,7 +426,6 @@ public partial class TasksViewModel : ViewModelBase, IDisposable
         if (_db is null) return;
         _db.Remove(task.ToEntity());
         await _db.SaveChangesAsync();
-
         _allTasks.Remove(task);
         if (SelectedTask == task) { SelectedTask = null; IsDetailOpen = false; }
         RefreshCurrentTasks();
@@ -470,10 +443,7 @@ public partial class TasksViewModel : ViewModelBase, IDisposable
     private async Task ConfirmAddList()
     {
         if (string.IsNullOrWhiteSpace(NewListName) || _db is null)
-        {
-            IsAddingList = false;
-            return;
-        }
+        { IsAddingList = false; return; }
 
         var entity = new TaskList
         {
@@ -491,7 +461,6 @@ public partial class TasksViewModel : ViewModelBase, IDisposable
         var vm = new TaskListViewModel(entity);
         Lists.Add(vm);
         SelectedList = vm;
-
         NewListName  = string.Empty;
         IsAddingList = false;
     }
@@ -515,18 +484,11 @@ public partial class TasksViewModel : ViewModelBase, IDisposable
     private async Task ConfirmRenameList()
     {
         if (SelectedList is null || string.IsNullOrWhiteSpace(RenameListText) || _db is null)
-        {
-            IsRenamingList = false;
-            return;
-        }
+        { IsRenamingList = false; return; }
 
         SelectedList.Name = RenameListText.Trim();
         var entity = SelectedList.ToEntity();
-        if (entity is not null)
-        {
-            entity.Name = SelectedList.Name;
-            await _db.SaveChangesAsync();
-        }
+        if (entity is not null) { entity.Name = SelectedList.Name; await _db.SaveChangesAsync(); }
         IsRenamingList = false;
     }
 
@@ -537,22 +499,16 @@ public partial class TasksViewModel : ViewModelBase, IDisposable
     private async Task DeleteList(TaskListViewModel list)
     {
         if (!list.CanDelete || _db is null) return;
-
         var entity = list.ToEntity();
         if (entity is not null)
         {
-            var tasks = await Task.Run(() => _db.Tasks
-                .Where(t => t.TaskListId == list.Id)
-                .ToList());
+            var tasks = await Task.Run(() => _db.Tasks.Where(t => t.TaskListId == list.Id).ToList());
             foreach (var t in tasks) t.TaskListId = null;
             _db.Remove(entity);
             await _db.SaveChangesAsync();
         }
-
         Lists.Remove(list);
-        if (SelectedList == list)
-            SelectedList = Lists.FirstOrDefault();
-
+        if (SelectedList == list) SelectedList = Lists.FirstOrDefault();
         await LoadTasksAsync();
     }
 

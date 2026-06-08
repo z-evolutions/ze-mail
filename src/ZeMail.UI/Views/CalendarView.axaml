@@ -74,7 +74,7 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border BorderThickness="0,0,1,1" BorderBrush="#1a1a3a"
+                        <Border BorderThickness="0,0,1,1" BorderBrush="#2a2a4a"
                                 Background="#0d0d1f">
                             <TextBlock Text="{Binding}"
                                        Foreground="#7070a0"
@@ -95,7 +95,7 @@
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="m:CalendarDayViewModel">
                         <Button Background="{Binding DayBackground}"
-                                BorderThickness="0,0,1,1" BorderBrush="#1a1a3a"
+                                BorderThickness="0,0,1,1" BorderBrush="#2a2a4a"
                                 HorizontalAlignment="Stretch"
                                 VerticalAlignment="Stretch"
                                 HorizontalContentAlignment="Stretch"
@@ -140,10 +140,9 @@
         <Grid Grid.Column="0" Grid.Row="1" RowDefinitions="64,*"
               IsVisible="{Binding IsWeekView}">
 
-            <!-- Wochentag-Header -->
             <Grid Grid.Row="0" ColumnDefinitions="48,*">
                 <Border Grid.Column="0" Background="#0d0d1f"
-                        BorderThickness="0,0,0,1" BorderBrush="#1a1a3a"/>
+                        BorderThickness="0,0,0,1" BorderBrush="#2a2a4a"/>
                 <ItemsControl Grid.Column="1" ItemsSource="{Binding WeekDays}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -152,7 +151,7 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="m:CalendarDayViewModel">
-                            <Border BorderThickness="1,0,0,1" BorderBrush="#1a1a3a"
+                            <Border BorderThickness="1,0,0,1" BorderBrush="#2a2a4a"
                                     Background="#0d0d1f" Padding="0,6">
                                 <StackPanel HorizontalAlignment="Center" Spacing="3">
                                     <TextBlock Text="{Binding Date, StringFormat='{}{0:ddd}'}"
@@ -175,17 +174,15 @@
                 </ItemsControl>
             </Grid>
 
-            <!-- Zeitraster -->
             <ScrollViewer Grid.Row="1">
                 <Panel>
                     <Grid>
-                        <!-- Stundenlabels -->
                         <ItemsControl ItemsSource="{Binding HourLabels}"
                                       Width="48" HorizontalAlignment="Left">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Border Height="60" BorderThickness="0,0,0,1"
-                                            BorderBrush="#1a1a3a">
+                                            BorderBrush="#2a2a4a">
                                         <TextBlock Text="{Binding}"
                                                    Foreground="#6060a0"
                                                    FontSize="11"
@@ -196,7 +193,6 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
 
-                        <!-- Tagesspalten -->
                         <ItemsControl ItemsSource="{Binding WeekDays}"
                                       Margin="48,0,0,0">
                             <ItemsControl.ItemsPanel>
@@ -206,7 +202,7 @@
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="m:CalendarDayViewModel">
-                                    <Border BorderThickness="1,0,0,0" BorderBrush="#1a1a3a">
+                                    <Border BorderThickness="1,0,0,0" BorderBrush="#2a2a4a">
                                         <ItemsControl ItemsSource="{Binding Events}" Margin="2">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate x:DataType="m:CalendarEventViewModel">
@@ -227,15 +223,12 @@
                         </ItemsControl>
                     </Grid>
 
-                    <!-- Aktuelle Uhrzeit-Linie -->
                     <Canvas IsVisible="{Binding ShowCurrentTimeLine}"
                             IsHitTestVisible="False">
                         <Line Canvas.Left="48"
                               Canvas.Top="{Binding CurrentTimeOffset}"
-                              StartPoint="0,0"
-                              EndPoint="2000,0"
-                              Stroke="#ff4444"
-                              StrokeThickness="1.5"/>
+                              StartPoint="0,0" EndPoint="2000,0"
+                              Stroke="#ff4444" StrokeThickness="1.5"/>
                         <Ellipse Canvas.Left="40"
                                  Canvas.Top="{Binding CurrentTimeOffset}"
                                  Width="8" Height="8"
@@ -251,7 +244,7 @@
               IsVisible="{Binding IsDayView}">
 
             <Border Grid.Row="0" Background="#0d0d1f"
-                    BorderThickness="0,0,0,1" BorderBrush="#1a1a3a"
+                    BorderThickness="0,0,0,1" BorderBrush="#2a2a4a"
                     Padding="16,0">
                 <TextBlock Text="{Binding CurrentPeriodLabel}"
                            Foreground="#e0e0ff"
@@ -267,7 +260,7 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Border Height="60" BorderThickness="0,0,0,1"
-                                            BorderBrush="#1a1a3a">
+                                            BorderBrush="#2a2a4a">
                                         <TextBlock Text="{Binding}"
                                                    Foreground="#6060a0"
                                                    FontSize="11"
@@ -279,7 +272,7 @@
                         </ItemsControl>
 
                         <Border Margin="48,0,0,0"
-                                BorderThickness="1,0,0,0" BorderBrush="#1a1a3a">
+                                BorderThickness="1,0,0,0" BorderBrush="#2a2a4a">
                             <ItemsControl ItemsSource="{Binding SelectedDayEvents}" Margin="4">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="m:CalendarEventViewModel">
@@ -301,15 +294,12 @@
                         </Border>
                     </Grid>
 
-                    <!-- Aktuelle Uhrzeit-Linie -->
                     <Canvas IsVisible="{Binding ShowCurrentTimeLine}"
                             IsHitTestVisible="False">
                         <Line Canvas.Left="48"
                               Canvas.Top="{Binding CurrentTimeOffset}"
-                              StartPoint="0,0"
-                              EndPoint="2000,0"
-                              Stroke="#ff4444"
-                              StrokeThickness="1.5"/>
+                              StartPoint="0,0" EndPoint="2000,0"
+                              Stroke="#ff4444" StrokeThickness="1.5"/>
                         <Ellipse Canvas.Left="40"
                                  Canvas.Top="{Binding CurrentTimeOffset}"
                                  Width="8" Height="8"

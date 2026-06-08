@@ -35,7 +35,7 @@ public partial class CalendarViewModel : ViewModelBase
     [ObservableProperty] private DateTime _currentWeekStart = DateTime.Today.AddDays(-(((int)DateTime.Today.DayOfWeek + 6) % 7));
     [ObservableProperty] private DateTime _currentDay       = DateTime.Today;
     [ObservableProperty] private string   _currentPeriodLabel = string.Empty;
-    [ObservableProperty] private double   _currentTimeOffset = 0;
+    [ObservableProperty] private double   _currentTimeOffset  = 0;
     [ObservableProperty] private bool     _showCurrentTimeLine = false;
 
     private Timer? _clockTimer;
@@ -146,8 +146,9 @@ public partial class CalendarViewModel : ViewModelBase
 
     private void BuildMonthCalendar()
     {
-        CurrentPeriodLabel = CurrentMonth.ToString("MMMM yyyy");
+        WeekDays.Clear();
         Days.Clear();
+        CurrentPeriodLabel = CurrentMonth.ToString("MMMM yyyy");
 
         var firstDay  = CurrentMonth;
         var startDate = firstDay.AddDays(-(((int)firstDay.DayOfWeek + 6) % 7));
@@ -168,10 +169,11 @@ public partial class CalendarViewModel : ViewModelBase
 
     private void BuildWeekCalendar()
     {
+        Days.Clear();
+        WeekDays.Clear();
         var kw      = ISOWeek.GetWeekOfYear(CurrentWeekStart);
         var weekEnd = CurrentWeekStart.AddDays(6);
         CurrentPeriodLabel = $"KW {kw} · {CurrentWeekStart:dd. MMM} – {weekEnd:dd. MMM yyyy}";
-        WeekDays.Clear();
 
         for (int i = 0; i < 7; i++)
         {
@@ -189,9 +191,10 @@ public partial class CalendarViewModel : ViewModelBase
 
     private void BuildDayCalendar()
     {
+        Days.Clear();
+        WeekDays.Clear();
         var kw = ISOWeek.GetWeekOfYear(CurrentDay);
         CurrentPeriodLabel = $"KW {kw} · {CurrentDay:dddd, dd. MMMM yyyy}";
-        WeekDays.Clear();
         WeekDays.Add(new CalendarDayViewModel
         {
             Date           = CurrentDay,
@@ -216,18 +219,19 @@ public partial class CalendarViewModel : ViewModelBase
             var allDays = Days.Concat(WeekDays).ToList();
             if (!allDays.Any()) return;
 
-            var from   = allDays.Min(d => d.Date);
-            var to     = allDays.Max(d => d.Date).AddDays(1);
+            var fromUtc = allDays.Min(d => d.Date).ToUniversalTime();
+            var toUtc   = allDays.Max(d => d.Date).AddDays(1).ToUniversalTime();
+
             var events = db.CalendarEvents
-                .Where(e => e.StartUtc < to && e.EndUtc >= from)
+                .Where(e => e.StartUtc < toUtc && e.EndUtc >= fromUtc)
                 .ToList();
 
             foreach (var day in allDays) day.Events.Clear();
 
             foreach (var ev in events)
             {
-                var local = ev.StartUtc.ToLocalTime();
-                var day   = allDays.FirstOrDefault(d => d.Date.Date == local.Date);
+                var localDate = ev.StartUtc.ToLocalTime().Date;
+                var day = allDays.FirstOrDefault(d => d.Date.Date == localDate);
                 if (day is null) continue;
 
                 day.Events.Add(new CalendarEventViewModel
@@ -268,23 +272,25 @@ public partial class CalendarViewModel : ViewModelBase
 
         var vm = existing is null
             ? new EventEditorViewModel
-            {
-                AccountId = account.Id,
-                StartDate = new DateTimeOffset(date.Date),
-                EndDate   = new DateTimeOffset(date.Date),
-            }
+              {
+                  AccountId = account.Id,
+                  StartDate = new DateTimeOffset(date.Date),
+                  EndDate   = new DateTimeOffset(date.Date),
+                  StartTime = TimeSpan.FromHours(9),
+                  EndTime   = TimeSpan.FromHours(10),
+              }
             : new EventEditorViewModel
-            {
-                EventId   = existing.Id,
-                AccountId = account.Id,
-                Title     = existing.Title,
-                Location  = existing.Location ?? string.Empty,
-                StartDate = new DateTimeOffset(existing.StartUtc.ToLocalTime().Date),
-                StartTime = existing.StartUtc.ToLocalTime().TimeOfDay,
-                EndDate   = new DateTimeOffset(existing.EndUtc.ToLocalTime().Date),
-                EndTime   = existing.EndUtc.ToLocalTime().TimeOfDay,
-                IsAllDay  = existing.IsAllDay,
-            };
+              {
+                  EventId   = existing.Id,
+                  AccountId = account.Id,
+                  Title     = existing.Title,
+                  Location  = existing.Location ?? string.Empty,
+                  StartDate = new DateTimeOffset(existing.StartUtc.ToLocalTime().Date),
+                  StartTime = existing.StartUtc.ToLocalTime().TimeOfDay,
+                  EndDate   = new DateTimeOffset(existing.EndUtc.ToLocalTime().Date),
+                  EndTime   = existing.EndUtc.ToLocalTime().TimeOfDay,
+                  IsAllDay  = existing.IsAllDay,
+              };
 
         var win = new EventEditorWindow { DataContext = vm };
         vm.OnSaved     += () => { win.Close(); _ = LoadEventsAsync(); };

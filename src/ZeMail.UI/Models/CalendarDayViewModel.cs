@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using Avalonia;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ZeMail.UI.Models;
@@ -16,6 +17,28 @@ public partial class CalendarEventViewModel : ObservableObject
 
     public string StartTime    => IsAllDay ? "Ganztägig" : StartUtc.ToLocalTime().ToString("HH:mm");
     public string DisplayTitle => IsAllDay ? Title : $"{StartTime} {Title}";
+
+    public double TopOffset
+    {
+        get
+        {
+            if (IsAllDay) return 0;
+            var local = StartUtc.ToLocalTime();
+            return local.Hour * 60.0 + local.Minute;
+        }
+    }
+
+    public double EventHeight
+    {
+        get
+        {
+            if (IsAllDay) return 60;
+            var duration = (EndUtc - StartUtc).TotalMinutes;
+            return Math.Max(30, duration);
+        }
+    }
+
+    public Thickness TopMargin => new Thickness(0, TopOffset, 0, 0);
 }
 
 public partial class CalendarDayViewModel : ObservableObject

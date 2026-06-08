@@ -13,16 +13,16 @@ public partial class EventEditorViewModel : ViewModelBase
     public Guid   AccountId { get; init; }
     public bool   IsEditMode => EventId.HasValue;
 
-    [ObservableProperty] private string          _title          = string.Empty;
-    [ObservableProperty] private string          _description    = string.Empty;
-    [ObservableProperty] private string          _location       = string.Empty;
-    [ObservableProperty] private DateTimeOffset? _startDate      = DateTimeOffset.Now;
-    [ObservableProperty] private TimeSpan        _startTime      = TimeSpan.FromHours(9);
-    [ObservableProperty] private DateTimeOffset? _endDate        = DateTimeOffset.Now;
-    [ObservableProperty] private TimeSpan        _endTime        = TimeSpan.FromHours(10);
-    [ObservableProperty] private bool            _isAllDay       = false;
-    [ObservableProperty] private string          _statusMessage  = string.Empty;
-    [ObservableProperty] private bool            _isSaving       = false;
+    [ObservableProperty] private string          _title         = string.Empty;
+    [ObservableProperty] private string          _description   = string.Empty;
+    [ObservableProperty] private string          _location      = string.Empty;
+    [ObservableProperty] private DateTimeOffset? _startDate     = DateTimeOffset.Now;
+    [ObservableProperty] private TimeSpan?       _startTime     = TimeSpan.FromHours(9);
+    [ObservableProperty] private DateTimeOffset? _endDate       = DateTimeOffset.Now;
+    [ObservableProperty] private TimeSpan?       _endTime       = TimeSpan.FromHours(10);
+    [ObservableProperty] private bool            _isAllDay      = false;
+    [ObservableProperty] private string          _statusMessage = string.Empty;
+    [ObservableProperty] private bool            _isSaving      = false;
 
     public string WindowTitle => IsEditMode ? "Termin bearbeiten" : "Neuer Termin";
 
@@ -54,13 +54,20 @@ public partial class EventEditorViewModel : ViewModelBase
             var svc = scope.ServiceProvider
                            .GetRequiredService<ZeMail.Core.Interfaces.ICalendarService>();
 
-            var startLocal = (StartDate?.Date ?? DateTime.Today).Add(StartTime);
-            var endLocal   = (EndDate?.Date   ?? DateTime.Today).Add(EndTime);
+            var startTime = StartTime ?? TimeSpan.FromHours(9);
+            var endTime   = EndTime   ?? TimeSpan.FromHours(10);
+
+            DateTime startLocal, endLocal;
 
             if (IsAllDay)
             {
                 startLocal = StartDate?.Date ?? DateTime.Today;
                 endLocal   = (EndDate?.Date ?? DateTime.Today).AddDays(1);
+            }
+            else
+            {
+                startLocal = (StartDate?.Date ?? DateTime.Today).Add(startTime);
+                endLocal   = (EndDate?.Date   ?? DateTime.Today).Add(endTime);
             }
 
             var startUtc = startLocal.ToUniversalTime();

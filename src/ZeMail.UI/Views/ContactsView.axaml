@@ -27,7 +27,6 @@
                     </Grid>
                 </Border>
 
-                <!-- Gruppen-Editor -->
                 <Border DockPanel.Dock="Top" Padding="10,8"
                         BorderThickness="0,0,0,1" BorderBrush="#2a2a4a"
                         IsVisible="{Binding IsGroupEditMode}">
@@ -71,7 +70,6 @@
                     </ListBox.Styles>
                 </ListBox>
 
-                <!-- Gruppe bearbeiten/löschen -->
                 <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
                             Spacing="4" Margin="8,6"
                             IsVisible="{Binding SelectedGroup.Id,
@@ -127,11 +125,10 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate x:DataType="vm:ContactItemViewModel">
                             <Grid ColumnDefinitions="40,*" Margin="8,4">
-                                <!-- Avatar klein -->
                                 <Panel Grid.Column="0" Width="32" Height="32">
+                                    <!-- Initialen -->
                                     <Ellipse Width="32" Height="32"
-                                             IsVisible="{Binding AvatarUrl,
-                                                 Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                             IsVisible="{Binding !HasAvatar}">
                                         <Ellipse.Fill>
                                             <SolidColorBrush Color="#3a3aff"/>
                                         </Ellipse.Fill>
@@ -139,13 +136,12 @@
                                     <TextBlock Text="{Binding Initials}"
                                                Foreground="White" FontSize="12" FontWeight="Bold"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"
-                                               IsVisible="{Binding AvatarUrl,
-                                                   Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+                                               IsVisible="{Binding !HasAvatar}"/>
+                                    <!-- Gravatar -->
                                     <Ellipse Width="32" Height="32"
-                                             IsVisible="{Binding AvatarUrl,
-                                                 Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                             IsVisible="{Binding HasAvatar}">
                                         <Ellipse.Fill>
-                                            <ImageBrush Source="{Binding AvatarUrl}"
+                                            <ImageBrush Source="{Binding AvatarBitmap}"
                                                         Stretch="UniformToFill"/>
                                         </Ellipse.Fill>
                                     </Ellipse>
@@ -178,13 +174,11 @@
                 <!-- ── PROFILANSICHT ── -->
                 <StackPanel IsVisible="{Binding !IsEditMode}" Spacing="0">
 
-                    <!-- Avatar gross + Name -->
                     <StackPanel Orientation="Horizontal" Spacing="20" Margin="0,0,0,24">
                         <Panel Width="80" Height="80">
                             <!-- Initialen-Fallback -->
                             <Ellipse Width="80" Height="80"
-                                     IsVisible="{Binding SelectedContact.AvatarUrl,
-                                         Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                     IsVisible="{Binding !SelectedContact.HasAvatar}">
                                 <Ellipse.Fill>
                                     <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
                                         <GradientStop Color="#5a5aff" Offset="0"/>
@@ -195,14 +189,12 @@
                             <TextBlock Text="{Binding SelectedContact.Initials}"
                                        Foreground="White" FontSize="28" FontWeight="Bold"
                                        HorizontalAlignment="Center" VerticalAlignment="Center"
-                                       IsVisible="{Binding SelectedContact.AvatarUrl,
-                                           Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+                                       IsVisible="{Binding !SelectedContact.HasAvatar}"/>
                             <!-- Gravatar -->
                             <Ellipse Width="80" Height="80"
-                                     IsVisible="{Binding SelectedContact.AvatarUrl,
-                                         Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                     IsVisible="{Binding SelectedContact.HasAvatar}">
                                 <Ellipse.Fill>
-                                    <ImageBrush Source="{Binding SelectedContact.AvatarUrl}"
+                                    <ImageBrush Source="{Binding SelectedContact.AvatarBitmap}"
                                                 Stretch="UniformToFill"/>
                                 </Ellipse.Fill>
                             </Ellipse>
@@ -222,7 +214,6 @@
                         </StackPanel>
                     </StackPanel>
 
-                    <!-- Kontaktdaten -->
                     <Border Background="#12122a" CornerRadius="10" Padding="20" Margin="0,0,0,12">
                         <StackPanel Spacing="14">
 

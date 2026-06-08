@@ -21,11 +21,17 @@
             <Setter Property="Background" Value="#22224a"/>
             <Setter Property="BorderBrush" Value="#7070ff"/>
         </Style>
+        <Style Selector="TextBox:pointerover">
+            <Setter Property="Background" Value="#1e1e40"/>
+        </Style>
         <Style Selector="TextBox /template/ Border#PART_BorderElement">
             <Setter Property="Background" Value="#1a1a3a"/>
         </Style>
         <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
             <Setter Property="Background" Value="#22224a"/>
+        </Style>
+        <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="#1e1e40"/>
         </Style>
     </Window.Styles>
 
@@ -70,21 +76,20 @@
                  AcceptsReturn="True"
                  TextWrapping="Wrap"
                  VerticalAlignment="Stretch"
+                 Foreground="#e0e0ff"
+                 Background="#1a1a3a"
+                 BorderBrush="#3a3a6a"
                  CornerRadius="6"
                  Padding="10"
                  Margin="0,0,0,12"/>
 
         <!-- Footer -->
-        <Grid Grid.Row="4" ColumnDefinitions="*,Auto,Auto,Auto">
-
-            <!-- Status -->
+        <Grid Grid.Row="4" ColumnDefinitions="*,Auto,Auto">
             <TextBlock Grid.Column="0"
                        Text="{Binding StatusMessage}"
                        Foreground="#a0a0ff"
                        FontSize="12"
                        VerticalAlignment="Center"/>
-
-            <!-- Abbrechen -->
             <Button Grid.Column="1"
                     Content="Abbrechen"
                     Command="{Binding CancelCommand}"
@@ -92,8 +97,6 @@
                     Foreground="#6060a0"
                     Padding="12,8"
                     Margin="0,0,8,0"/>
-
-            <!-- Senden -->
             <Button Grid.Column="2"
                     Content="Senden ✉"
                     Command="{Binding SendCommand}"

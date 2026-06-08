@@ -11,7 +11,7 @@ namespace ZeMail.Infrastructure.Mail;
 
 public sealed class SmtpSenderService : ISmtpSenderService
 {
-    private readonly ZeMailDbContext           _db;
+    private readonly ZeMailDbContext            _db;
     private readonly ILogger<SmtpSenderService> _logger;
 
     public SmtpSenderService(ZeMailDbContext db, ILogger<SmtpSenderService> logger)
@@ -30,6 +30,8 @@ public sealed class SmtpSenderService : ISmtpSenderService
         var mime = BuildMimeMessage(outgoing, account.EmailAddress, account.Name);
 
         using var client = new SmtpClient();
+        client.CheckCertificateRevocation = false;
+        client.ServerCertificateValidationCallback = (sender, certificate, chain, errors) => true;
 
         _logger.LogInformation(
             "SMTP verbinde: {Host}:{Port}", account.SmtpHost, account.SmtpPort);
@@ -41,14 +43,11 @@ public sealed class SmtpSenderService : ISmtpSenderService
             ct);
 
         await client.AuthenticateAsync(account.Username, account.Password, ct);
-
         await client.SendAsync(mime, ct);
         _logger.LogInformation("Mail gesendet: {Subject}", outgoing.Subject);
-
         await client.DisconnectAsync(true, ct);
     }
 
-    // ── MimeMessage aufbauen ─────────────────────────────────────────────────
     private static MimeMessage BuildMimeMessage(
         OutgoingMessage outgoing, string fromAddress, string fromName)
     {
@@ -77,19 +76,14 @@ public sealed class SmtpSenderService : ISmtpSenderService
             builder.Attachments.Add(file.FileName, file.Data,
                 ContentType.Parse(file.MimeType));
 
-        // iCal-Payload für RSVP-Replies (RFC 5546)
         if (!string.IsNullOrEmpty(outgoing.ICalPayload))
         {
-            var calPart = new TextPart("calendar")
-            {
-                Text = outgoing.ICalPayload
-            };
+            var calPart = new TextPart("calendar") { Text = outgoing.ICalPayload };
             calPart.ContentType.Parameters.Add("method", "REPLY");
             builder.Attachments.Add(calPart);
         }
 
         mime.Body = builder.ToMessageBody();
-
         return mime;
     }
 }

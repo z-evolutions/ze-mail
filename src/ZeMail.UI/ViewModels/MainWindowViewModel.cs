@@ -52,19 +52,24 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async Task OpenAccountSetup()
+    private async Task OpenSettings()
     {
-        var vm  = new AccountSetupViewModel();
-        var win = new AccountSetupWindow { DataContext = vm };
+        var vm  = new SettingsViewModel();
+        var win = new SettingsWindow { DataContext = vm };
 
-        vm.OnSaved     += () => win.Close();
-        vm.OnCancelled += () => win.Close();
+        vm.OnClose += () => win.Close();
+        vm.OnAddAccount += async () =>
+        {
+            var setupVm  = new AccountSetupViewModel();
+            var setupWin = new AccountSetupWindow { DataContext = setupVm };
+            setupVm.OnSaved     += () => { setupWin.Close(); vm.LoadAccounts(); };
+            setupVm.OnCancelled += () => setupWin.Close();
+            await setupWin.ShowDialog(win);
+        };
 
         if (Avalonia.Application.Current?.ApplicationLifetime
             is IClassicDesktopStyleApplicationLifetime dt)
-        {
             await win.ShowDialog(dt.MainWindow!);
-        }
     }
 
     [RelayCommand]
@@ -72,6 +77,13 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (CurrentView is MailboxViewModel mailbox)
             await mailbox.SyncCommand.ExecuteAsync(null);
+    }
+
+    [RelayCommand]
+    private void NewMail()
+    {
+        if (CurrentView is MailboxViewModel mailbox)
+            mailbox.NewMailCommand.Execute(null);
     }
 }
 

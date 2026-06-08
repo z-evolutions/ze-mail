@@ -1,0 +1,156 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:ZeMail.UI.ViewModels"
+        x:Class="ZeMail.UI.Views.SettingsWindow"
+        x:DataType="vm:SettingsViewModel"
+        Title="Einstellungen"
+        Icon="/Assets/zemail.ico"
+        Width="900" Height="620"
+        MinWidth="700" MinHeight="500"
+        WindowStartupLocation="CenterOwner"
+        Background="#0f0f23">
+
+    <Grid ColumnDefinitions="200,*" RowDefinitions="*,Auto">
+
+        <!-- ── Linke Spalte: Account-Liste ── -->
+        <Border Grid.Column="0" Grid.Row="0"
+                Background="#0a0a1a"
+                BorderThickness="0,0,1,0" BorderBrush="#2a2a4a">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top"
+                           Text="KONTEN"
+                           Foreground="#6060a0"
+                           FontSize="11" FontWeight="Bold"
+                           Margin="12,16,12,8"/>
+
+                <Button DockPanel.Dock="Bottom"
+                        Content="+ Konto hinzufügen"
+                        Command="{Binding AddAccountCommand}"
+                        Background="#3a3aff"
+                        Foreground="White"
+                        CornerRadius="0"
+                        Padding="12,10"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"/>
+
+                <ListBox ItemsSource="{Binding Accounts}"
+                         SelectedItem="{Binding SelectedAccount}"
+                         Background="Transparent">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:AccountItemViewModel">
+                            <StackPanel Spacing="2" Margin="4,4">
+                                <TextBlock Text="{Binding Name}"
+                                           Foreground="#e0e0ff"
+                                           FontSize="13" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding EmailAddress}"
+                                           Foreground="#6060a0"
+                                           FontSize="11"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <!-- ── Rechte Spalte: Edit-Bereich ── -->
+        <ScrollViewer Grid.Column="1" Grid.Row="0" Padding="20">
+            <StackPanel Spacing="12"
+                        IsVisible="{Binding HasSelection}">
+
+                <TextBlock Text="Konto bearbeiten"
+                           Foreground="#7070ff"
+                           FontSize="16" FontWeight="Bold"
+                           Margin="0,0,0,8"/>
+
+                <!-- Name -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Anzeigename" Foreground="#8080a0" FontSize="12"/>
+                    <TextBox Text="{Binding EditName}" CornerRadius="6" Padding="10,6"/>
+                </StackPanel>
+
+                <!-- E-Mail -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="E-Mail-Adresse" Foreground="#8080a0" FontSize="12"/>
+                    <TextBox Text="{Binding EditEmail}" CornerRadius="6" Padding="10,6"/>
+                </StackPanel>
+
+                <!-- IMAP -->
+                <Grid ColumnDefinitions="*,100" Margin="0,4,0,0">
+                    <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,8,0">
+                        <TextBlock Text="IMAP-Server" Foreground="#8080a0" FontSize="12"/>
+                        <TextBox Text="{Binding EditImapHost}" CornerRadius="6" Padding="10,6"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Spacing="4">
+                        <TextBlock Text="Port" Foreground="#8080a0" FontSize="12"/>
+                        <TextBox Text="{Binding EditImapPort}" CornerRadius="6" Padding="10,6"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- SMTP -->
+                <Grid ColumnDefinitions="*,100">
+                    <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,8,0">
+                        <TextBlock Text="SMTP-Server" Foreground="#8080a0" FontSize="12"/>
+                        <TextBox Text="{Binding EditSmtpHost}" CornerRadius="6" Padding="10,6"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Spacing="4">
+                        <TextBlock Text="Port" Foreground="#8080a0" FontSize="12"/>
+                        <TextBox Text="{Binding EditSmtpPort}" CornerRadius="6" Padding="10,6"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Benutzername -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Benutzername" Foreground="#8080a0" FontSize="12"/>
+                    <TextBox Text="{Binding EditUsername}" CornerRadius="6" Padding="10,6"/>
+                </StackPanel>
+
+                <!-- Passwort -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Passwort" Foreground="#8080a0" FontSize="12"/>
+                    <TextBox Text="{Binding EditPassword}"
+                             PasswordChar="●"
+                             CornerRadius="6" Padding="10,6"/>
+                </StackPanel>
+
+                <!-- Unified Inbox -->
+                <CheckBox Content="Im einheitlichen Posteingang anzeigen"
+                          IsChecked="{Binding EditUnifiedInbox}"
+                          Foreground="#c0c0e0"/>
+
+                <!-- Aktionen -->
+                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+                    <Button Content="Speichern"
+                            Command="{Binding SaveCommand}"
+                            Background="#3a3aff"
+                            Foreground="White"
+                            CornerRadius="6"
+                            Padding="14,8"/>
+                    <Button Content="Konto löschen"
+                            Command="{Binding DeleteCommand}"
+                            Background="#4a1a1a"
+                            Foreground="#ff6060"
+                            CornerRadius="6"
+                            Padding="14,8"/>
+                </StackPanel>
+
+                <!-- Status -->
+                <TextBlock Text="{Binding StatusMessage}"
+                           Foreground="#a0a0ff"
+                           FontSize="12"/>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ── Footer ── -->
+        <Border Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="1"
+                BorderThickness="0,1,0,0" BorderBrush="#2a2a4a"
+                Padding="16,10">
+            <Button Content="Schließen"
+                    Command="{Binding CloseCommand}"
+                    Background="Transparent"
+                    Foreground="#6060a0"
+                    HorizontalAlignment="Right"
+                    Padding="12,6"/>
+        </Border>
+
+    </Grid>
+</Window>

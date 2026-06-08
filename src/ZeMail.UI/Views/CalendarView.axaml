@@ -36,7 +36,6 @@
                         Background="Transparent" Foreground="#7070ff"
                         FontSize="13" Margin="8,0" Padding="8,4"/>
 
-                <!-- Ansichts-Toggle -->
                 <StackPanel Grid.Column="5" Orientation="Horizontal"
                             Spacing="0" VerticalAlignment="Center"
                             Margin="0,0,12,0">
@@ -67,7 +66,6 @@
         <Grid Grid.Column="0" Grid.Row="1" RowDefinitions="36,*"
               IsVisible="{Binding IsMonthView}">
 
-            <!-- Wochentag-Header -->
             <ItemsControl Grid.Row="0" ItemsSource="{Binding WeekDayHeaders}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -88,7 +86,6 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <!-- Tage -->
             <ItemsControl Grid.Row="1" ItemsSource="{Binding Days}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -97,9 +94,8 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="m:CalendarDayViewModel">
-                        <Button Background="Transparent"
-                                BorderThickness="0,0,1,1"
-                                BorderBrush="#1a1a3a"
+                        <Button Background="{Binding DayBackground}"
+                                BorderThickness="0,0,1,1" BorderBrush="#1a1a3a"
                                 HorizontalAlignment="Stretch"
                                 VerticalAlignment="Stretch"
                                 HorizontalContentAlignment="Stretch"
@@ -107,32 +103,16 @@
                                 Padding="0"
                                 Command="{Binding $parent[UserControl].DataContext.SelectDayCommand}"
                                 CommandParameter="{Binding}">
-                            <Button.Styles>
-                                <Style Selector="Button">
-                                    <Setter Property="Background" Value="Transparent"/>
-                                </Style>
-                                <Style Selector="Button[Tag=outside]">
-                                    <Setter Property="Background" Value="#080814"/>
-                                </Style>
-                            </Button.Styles>
                             <Grid RowDefinitions="28,*" Margin="2">
-
-                                <!-- Tageszahl -->
                                 <Panel Grid.Row="0" HorizontalAlignment="Right"
-                                       Width="26" Height="26" Margin="0,2,2,0">
-                                    <Ellipse Fill="#3a3aff"
-                                             IsVisible="{Binding IsToday}"/>
+                                       Width="24" Height="24" Margin="0,2,2,0">
+                                    <Ellipse Fill="#3a3aff" IsVisible="{Binding IsToday}"/>
                                     <TextBlock Text="{Binding DayNumber}"
                                                FontSize="12"
-                                               FontWeight="{Binding IsToday, Converter={x:Static BoolConverters.Not}}"
                                                HorizontalAlignment="Center"
                                                VerticalAlignment="Center"
-                                               Foreground="{Binding IsCurrentMonth,
-                                                   Converter={x:Static BoolConverters.Not},
-                                                   ConverterParameter='#404060'}"/>
+                                               Foreground="{Binding DayNumberColor}"/>
                                 </Panel>
-
-                                <!-- Events -->
                                 <ItemsControl Grid.Row="1"
                                               ItemsSource="{Binding Events}"
                                               Margin="1,0,1,2">
@@ -157,91 +137,112 @@
         </Grid>
 
         <!-- ── Wochenansicht ── -->
-        <Grid Grid.Column="0" Grid.Row="1" RowDefinitions="56,*"
+        <Grid Grid.Column="0" Grid.Row="1" RowDefinitions="64,*"
               IsVisible="{Binding IsWeekView}">
 
-            <!-- Wochentag-Header mit Datum -->
-            <ItemsControl Grid.Row="0" ItemsSource="{Binding WeekDays}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <UniformGrid Columns="7" Margin="48,0,0,0"/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="m:CalendarDayViewModel">
-                        <Border BorderThickness="1,0,0,1" BorderBrush="#1a1a3a"
-                                Background="#0d0d1f" Padding="0,8">
-                            <StackPanel HorizontalAlignment="Center" Spacing="4">
-                                <TextBlock Text="{Binding Date, StringFormat='{}{0:ddd}'}"
-                                           Foreground="#7070a0"
-                                           FontSize="11" FontWeight="Bold"
-                                           HorizontalAlignment="Center"/>
-                                <Panel Width="32" Height="32"
-                                       HorizontalAlignment="Center">
-                                    <Ellipse Fill="#3a3aff" IsVisible="{Binding IsToday}"/>
-                                    <TextBlock Text="{Binding DayNumber}"
-                                               FontSize="16" FontWeight="SemiBold"
-                                               HorizontalAlignment="Center"
-                                               VerticalAlignment="Center"
-                                               Foreground="#e0e0ff"/>
-                                </Panel>
-                            </StackPanel>
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <!-- Wochentag-Header -->
+            <Grid Grid.Row="0" ColumnDefinitions="48,*">
+                <Border Grid.Column="0" Background="#0d0d1f"
+                        BorderThickness="0,0,0,1" BorderBrush="#1a1a3a"/>
+                <ItemsControl Grid.Column="1" ItemsSource="{Binding WeekDays}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="7"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="m:CalendarDayViewModel">
+                            <Border BorderThickness="1,0,0,1" BorderBrush="#1a1a3a"
+                                    Background="#0d0d1f" Padding="0,6">
+                                <StackPanel HorizontalAlignment="Center" Spacing="3">
+                                    <TextBlock Text="{Binding Date, StringFormat='{}{0:ddd}'}"
+                                               Foreground="#7070a0"
+                                               FontSize="11" FontWeight="Bold"
+                                               HorizontalAlignment="Center"/>
+                                    <Panel Width="28" Height="28"
+                                           HorizontalAlignment="Center">
+                                        <Ellipse Fill="#3a3aff" IsVisible="{Binding IsToday}"/>
+                                        <TextBlock Text="{Binding DayNumber}"
+                                                   FontSize="14" FontWeight="SemiBold"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="#e0e0ff"/>
+                                    </Panel>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Grid>
 
             <!-- Zeitraster -->
             <ScrollViewer Grid.Row="1">
-                <Grid>
-                    <!-- Stundenlabels -->
-                    <ItemsControl ItemsSource="{Binding HourLabels}"
-                                  Width="48" HorizontalAlignment="Left">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Height="60" BorderThickness="0,0,0,1"
-                                        BorderBrush="#1a1a3a">
-                                    <TextBlock Text="{Binding}"
-                                               Foreground="#6060a0"
-                                               FontSize="11"
-                                               VerticalAlignment="Top"
-                                               Margin="6,2"/>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                <Panel>
+                    <Grid>
+                        <!-- Stundenlabels -->
+                        <ItemsControl ItemsSource="{Binding HourLabels}"
+                                      Width="48" HorizontalAlignment="Left">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Height="60" BorderThickness="0,0,0,1"
+                                            BorderBrush="#1a1a3a">
+                                        <TextBlock Text="{Binding}"
+                                                   Foreground="#6060a0"
+                                                   FontSize="11"
+                                                   VerticalAlignment="Top"
+                                                   Margin="6,2"/>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
 
-                    <!-- Tagesspalten -->
-                    <ItemsControl ItemsSource="{Binding WeekDays}"
-                                  Margin="48,0,0,0">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <UniformGrid Columns="7"/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="m:CalendarDayViewModel">
-                                <Border BorderThickness="1,0,0,0" BorderBrush="#1a1a3a">
-                                    <ItemsControl ItemsSource="{Binding Events}"
-                                                  Margin="2">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate x:DataType="m:CalendarEventViewModel">
-                                                <Border Background="#3a3aff"
-                                                        CornerRadius="4"
-                                                        Margin="0,1" Padding="6,4">
-                                                    <TextBlock Text="{Binding DisplayTitle}"
-                                                               Foreground="White"
-                                                               FontSize="11"
-                                                               TextWrapping="Wrap"/>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </Grid>
+                        <!-- Tagesspalten -->
+                        <ItemsControl ItemsSource="{Binding WeekDays}"
+                                      Margin="48,0,0,0">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Columns="7"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="m:CalendarDayViewModel">
+                                    <Border BorderThickness="1,0,0,0" BorderBrush="#1a1a3a">
+                                        <ItemsControl ItemsSource="{Binding Events}" Margin="2">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="m:CalendarEventViewModel">
+                                                    <Border Background="#3a3aff"
+                                                            CornerRadius="4"
+                                                            Margin="0,1" Padding="6,4">
+                                                        <TextBlock Text="{Binding DisplayTitle}"
+                                                                   Foreground="White"
+                                                                   FontSize="11"
+                                                                   TextWrapping="Wrap"/>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+
+                    <!-- Aktuelle Uhrzeit-Linie -->
+                    <Canvas IsVisible="{Binding ShowCurrentTimeLine}"
+                            IsHitTestVisible="False">
+                        <Line Canvas.Left="48"
+                              Canvas.Top="{Binding CurrentTimeOffset}"
+                              StartPoint="0,0"
+                              EndPoint="2000,0"
+                              Stroke="#ff4444"
+                              StrokeThickness="1.5"/>
+                        <Ellipse Canvas.Left="40"
+                                 Canvas.Top="{Binding CurrentTimeOffset}"
+                                 Width="8" Height="8"
+                                 Margin="0,-4,0,0"
+                                 Fill="#ff4444"/>
+                    </Canvas>
+                </Panel>
             </ScrollViewer>
         </Grid>
 
@@ -252,56 +253,70 @@
             <Border Grid.Row="0" Background="#0d0d1f"
                     BorderThickness="0,0,0,1" BorderBrush="#1a1a3a"
                     Padding="16,0">
-                <TextBlock Text="{Binding CurrentDay, StringFormat='{}{0:dddd, dd. MMMM yyyy}'}"
+                <TextBlock Text="{Binding CurrentPeriodLabel}"
                            Foreground="#e0e0ff"
-                           FontSize="14" FontWeight="SemiBold"
+                           FontSize="13" FontWeight="SemiBold"
                            VerticalAlignment="Center"/>
             </Border>
 
             <ScrollViewer Grid.Row="1">
-                <Grid>
-                    <!-- Stundenlabels -->
-                    <ItemsControl ItemsSource="{Binding HourLabels}"
-                                  Width="48" HorizontalAlignment="Left">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Height="60" BorderThickness="0,0,0,1"
-                                        BorderBrush="#1a1a3a">
-                                    <TextBlock Text="{Binding}"
-                                               Foreground="#6060a0"
-                                               FontSize="11"
-                                               VerticalAlignment="Top"
-                                               Margin="6,2"/>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-
-                    <!-- Events -->
-                    <Border Margin="48,0,0,0"
-                            BorderThickness="1,0,0,0" BorderBrush="#1a1a3a">
-                        <ItemsControl ItemsSource="{Binding SelectedDayEvents}"
-                                      Margin="4">
+                <Panel>
+                    <Grid>
+                        <ItemsControl ItemsSource="{Binding HourLabels}"
+                                      Width="48" HorizontalAlignment="Left">
                             <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="m:CalendarEventViewModel">
-                                    <Border Background="#3a3aff"
-                                            CornerRadius="6"
-                                            Margin="0,2" Padding="10,6">
-                                        <StackPanel Spacing="2">
-                                            <TextBlock Text="{Binding Title}"
-                                                       Foreground="White"
-                                                       FontSize="13"
-                                                       FontWeight="SemiBold"/>
-                                            <TextBlock Text="{Binding StartTime}"
-                                                       Foreground="#c0c0ff"
-                                                       FontSize="11"/>
-                                        </StackPanel>
+                                <DataTemplate>
+                                    <Border Height="60" BorderThickness="0,0,0,1"
+                                            BorderBrush="#1a1a3a">
+                                        <TextBlock Text="{Binding}"
+                                                   Foreground="#6060a0"
+                                                   FontSize="11"
+                                                   VerticalAlignment="Top"
+                                                   Margin="6,2"/>
                                     </Border>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                    </Border>
-                </Grid>
+
+                        <Border Margin="48,0,0,0"
+                                BorderThickness="1,0,0,0" BorderBrush="#1a1a3a">
+                            <ItemsControl ItemsSource="{Binding SelectedDayEvents}" Margin="4">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="m:CalendarEventViewModel">
+                                        <Border Background="#3a3aff"
+                                                CornerRadius="6"
+                                                Margin="0,2" Padding="10,6">
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="{Binding Title}"
+                                                           Foreground="White"
+                                                           FontSize="13" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding StartTime}"
+                                                           Foreground="#c0c0ff"
+                                                           FontSize="11"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+                    </Grid>
+
+                    <!-- Aktuelle Uhrzeit-Linie -->
+                    <Canvas IsVisible="{Binding ShowCurrentTimeLine}"
+                            IsHitTestVisible="False">
+                        <Line Canvas.Left="48"
+                              Canvas.Top="{Binding CurrentTimeOffset}"
+                              StartPoint="0,0"
+                              EndPoint="2000,0"
+                              Stroke="#ff4444"
+                              StrokeThickness="1.5"/>
+                        <Ellipse Canvas.Left="40"
+                                 Canvas.Top="{Binding CurrentTimeOffset}"
+                                 Width="8" Height="8"
+                                 Margin="0,-4,0,0"
+                                 Fill="#ff4444"/>
+                    </Canvas>
+                </Panel>
             </ScrollViewer>
         </Grid>
 

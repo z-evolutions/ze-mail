@@ -1,6 +1,8 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -14,8 +16,7 @@ public enum CalendarViewMode { Month, Week, Day }
 public partial class CalendarViewModel : ViewModelBase
 {
     // ── Ansichtsmodus ────────────────────────────────────────────────────────
-    [ObservableProperty]
-    private CalendarViewMode _viewMode = CalendarViewMode.Month;
+    [ObservableProperty] private CalendarViewMode _viewMode = CalendarViewMode.Month;
 
     public bool IsMonthView => ViewMode == CalendarViewMode.Month;
     public bool IsWeekView  => ViewMode == CalendarViewMode.Week;
@@ -31,17 +32,17 @@ public partial class CalendarViewModel : ViewModelBase
     }
 
     // ── Navigation ───────────────────────────────────────────────────────────
-    [ObservableProperty]
-    private DateTime _currentMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    [ObservableProperty] private DateTime _currentMonth     = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    [ObservableProperty] private DateTime _currentWeekStart = DateTime.Today.AddDays(-(((int)DateTime.Today.DayOfWeek + 6) % 7));
+    [ObservableProperty] private DateTime _currentDay       = DateTime.Today;
+    [ObservableProperty] private string   _currentPeriodLabel = string.Empty;
 
-    [ObservableProperty]
-    private DateTime _currentWeekStart = DateTime.Today.AddDays(-(((int)DateTime.Today.DayOfWeek + 6) % 7));
+    // ── Aktuelle Uhrzeit ─────────────────────────────────────────────────────
+    // 60px pro Stunde → Offset in Pixel von oben
+    [ObservableProperty] private double _currentTimeOffset = 0;
+    [ObservableProperty] private bool   _showCurrentTimeLine = false;
 
-    [ObservableProperty]
-    private DateTime _currentDay = DateTime.Today;
-
-    [ObservableProperty]
-    private string _currentPeriodLabel = string.Empty;
+    private Timer? _clockTimer;
 
     // ── Kalenderraster ───────────────────────────────────────────────────────
     public ObservableCollection<CalendarDayViewModel> Days     { get; } = [];
@@ -50,26 +51,35 @@ public partial class CalendarViewModel : ViewModelBase
         ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
     // ── Selektierter Tag ─────────────────────────────────────────────────────
-    [ObservableProperty]
-    private CalendarDayViewModel? _selectedDay;
+    [ObservableProperty] private CalendarDayViewModel? _selectedDay;
+    [ObservableProperty] private ObservableCollection<CalendarEventViewModel> _selectedDayEvents = [];
 
-    [ObservableProperty]
-    private ObservableCollection<CalendarEventViewModel> _selectedDayEvents = [];
-
-    // ── Stunden für Tagesansicht ─────────────────────────────────────────────
+    // ── Stunden ──────────────────────────────────────────────────────────────
     public ObservableCollection<string> HourLabels { get; } = [];
 
     // ── Status ───────────────────────────────────────────────────────────────
-    [ObservableProperty]
-    private string _statusText = string.Empty;
+    [ObservableProperty] private string _statusText = string.Empty;
 
     public CalendarViewModel()
     {
         for (int h = 0; h < 24; h++)
             HourLabels.Add($"{h:00}:00");
 
+        UpdateCurrentTimeLine();
+        _clockTimer = new Timer(_ =>
+        {
+            UpdateCurrentTimeLine();
+        }, null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
+
         BuildCalendar();
         _ = LoadEventsAsync();
+    }
+
+    private void UpdateCurrentTimeLine()
+    {
+        var now = DateTime.Now;
+        CurrentTimeOffset    = now.Hour * 60.0 + now.Minute; // px (60px/h)
+        ShowCurrentTimeLine  = true;
     }
 
     // ── Ansicht wechseln ─────────────────────────────────────────────────────
@@ -83,12 +93,9 @@ public partial class CalendarViewModel : ViewModelBase
     {
         switch (ViewMode)
         {
-            case CalendarViewMode.Month:
-                CurrentMonth = CurrentMonth.AddMonths(-1); break;
-            case CalendarViewMode.Week:
-                CurrentWeekStart = CurrentWeekStart.AddDays(-7); break;
-            case CalendarViewMode.Day:
-                CurrentDay = CurrentDay.AddDays(-1); break;
+            case CalendarViewMode.Month: CurrentMonth     = CurrentMonth.AddMonths(-1);      break;
+            case CalendarViewMode.Week:  CurrentWeekStart = CurrentWeekStart.AddDays(-7);    break;
+            case CalendarViewMode.Day:   CurrentDay       = CurrentDay.AddDays(-1);          break;
         }
         BuildCalendar();
         _ = LoadEventsAsync();
@@ -99,12 +106,9 @@ public partial class CalendarViewModel : ViewModelBase
     {
         switch (ViewMode)
         {
-            case CalendarViewMode.Month:
-                CurrentMonth = CurrentMonth.AddMonths(1); break;
-            case CalendarViewMode.Week:
-                CurrentWeekStart = CurrentWeekStart.AddDays(7); break;
-            case CalendarViewMode.Day:
-                CurrentDay = CurrentDay.AddDays(1); break;
+            case CalendarViewMode.Month: CurrentMonth     = CurrentMonth.AddMonths(1);       break;
+            case CalendarViewMode.Week:  CurrentWeekStart = CurrentWeekStart.AddDays(7);     break;
+            case CalendarViewMode.Day:   CurrentDay       = CurrentDay.AddDays(1);           break;
         }
         BuildCalendar();
         _ = LoadEventsAsync();
@@ -125,7 +129,7 @@ public partial class CalendarViewModel : ViewModelBase
     {
         if (day is null) return;
         if (SelectedDay is not null) SelectedDay.IsSelected = false;
-        SelectedDay = day;
+        SelectedDay    = day;
         day.IsSelected = true;
         SelectedDayEvents.Clear();
         foreach (var ev in day.Events)
@@ -133,20 +137,16 @@ public partial class CalendarViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void NewEvent()
-    {
-        var date = SelectedDay?.Date ?? DateTime.Today;
-        OpenEventEditor(null, date);
-    }
+    private void NewEvent() => OpenEventEditor(null, SelectedDay?.Date ?? DateTime.Today);
 
-    // ── Kalender aufbauen ─────────────────────────────────────────────────────
+    // ── Kalender aufbauen ────────────────────────────────────────────────────
     private void BuildCalendar()
     {
         switch (ViewMode)
         {
-            case CalendarViewMode.Month:  BuildMonthCalendar();  break;
-            case CalendarViewMode.Week:   BuildWeekCalendar();   break;
-            case CalendarViewMode.Day:    BuildDayCalendar();    break;
+            case CalendarViewMode.Month: BuildMonthCalendar(); break;
+            case CalendarViewMode.Week:  BuildWeekCalendar();  break;
+            case CalendarViewMode.Day:   BuildDayCalendar();   break;
         }
     }
 
@@ -169,14 +169,14 @@ public partial class CalendarViewModel : ViewModelBase
                 IsSelected     = date.Date == DateTime.Today && date.Month == CurrentMonth.Month
             });
         }
-
         SelectedDay = Days.FirstOrDefault(d => d.IsSelected);
     }
 
     private void BuildWeekCalendar()
     {
+        var kw      = ISOWeek.GetWeekOfYear(CurrentWeekStart);
         var weekEnd = CurrentWeekStart.AddDays(6);
-        CurrentPeriodLabel = $"{CurrentWeekStart:dd. MMM} – {weekEnd:dd. MMM yyyy}";
+        CurrentPeriodLabel = $"KW {kw} · {CurrentWeekStart:dd. MMM} – {weekEnd:dd. MMM yyyy}";
         WeekDays.Clear();
 
         for (int i = 0; i < 7; i++)
@@ -190,13 +190,13 @@ public partial class CalendarViewModel : ViewModelBase
                 IsSelected     = date.Date == DateTime.Today
             });
         }
-
         SelectedDay = WeekDays.FirstOrDefault(d => d.IsSelected) ?? WeekDays[0];
     }
 
     private void BuildDayCalendar()
     {
-        CurrentPeriodLabel = CurrentDay.ToString("dddd, dd. MMMM yyyy");
+        var kw = ISOWeek.GetWeekOfYear(CurrentDay);
+        CurrentPeriodLabel = $"KW {kw} · {CurrentDay:dddd, dd. MMMM yyyy}";
         WeekDays.Clear();
         WeekDays.Add(new CalendarDayViewModel
         {
@@ -223,9 +223,8 @@ public partial class CalendarViewModel : ViewModelBase
             var allDays = Days.Concat(WeekDays).ToList();
             if (!allDays.Any()) return;
 
-            var from = allDays.Min(d => d.Date);
-            var to   = allDays.Max(d => d.Date).AddDays(1);
-
+            var from   = allDays.Min(d => d.Date);
+            var to     = allDays.Max(d => d.Date).AddDays(1);
             var events = db.CalendarEvents
                 .Where(e => e.StartUtc < to && e.EndUtc >= from)
                 .ToList();

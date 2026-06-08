@@ -11,6 +11,7 @@
                 BorderThickness="0,0,1,0" BorderBrush="#2a2a4a">
             <DockPanel>
 
+                <!-- Header -->
                 <Border DockPanel.Dock="Top" Padding="10,10"
                         BorderThickness="0,0,0,1" BorderBrush="#2a2a4a">
                     <Grid ColumnDefinitions="*,Auto">
@@ -27,6 +28,7 @@
                     </Grid>
                 </Border>
 
+                <!-- Gruppen-Editor -->
                 <Border DockPanel.Dock="Top" Padding="10,8"
                         BorderThickness="0,0,0,1" BorderBrush="#2a2a4a"
                         IsVisible="{Binding IsGroupEditMode}">
@@ -50,6 +52,26 @@
                     </StackPanel>
                 </Border>
 
+                <!-- ── WICHTIG: Bottom VOR der ListBox ── -->
+                <Border DockPanel.Dock="Bottom" Padding="8,6"
+                        BorderThickness="0,1,0,0" BorderBrush="#2a2a4a"
+                        IsVisible="{Binding SelectedGroup.Id,
+                            Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <Button Content="✏"
+                                Command="{Binding EditGroupCommand}"
+                                Background="Transparent" Foreground="#6060a0"
+                                Padding="6,4" FontSize="13"
+                                ToolTip.Tip="Gruppe bearbeiten"/>
+                        <Button Content="🗑"
+                                Command="{Binding DeleteGroupCommand}"
+                                Background="Transparent" Foreground="#804040"
+                                Padding="6,4" FontSize="13"
+                                ToolTip.Tip="Gruppe löschen"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Grupplenliste (Fill) -->
                 <ListBox ItemsSource="{Binding Groups}"
                          SelectedItem="{Binding SelectedGroup}"
                          Background="Transparent">
@@ -69,22 +91,6 @@
                         </Style>
                     </ListBox.Styles>
                 </ListBox>
-
-                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
-                            Spacing="4" Margin="8,6"
-                            IsVisible="{Binding SelectedGroup.Id,
-                                Converter={x:Static ObjectConverters.IsNotNull}}">
-                    <Button Content="✏"
-                            Command="{Binding EditGroupCommand}"
-                            Background="Transparent" Foreground="#6060a0"
-                            Padding="6,4" FontSize="13"
-                            ToolTip.Tip="Gruppe bearbeiten"/>
-                    <Button Content="🗑"
-                            Command="{Binding DeleteGroupCommand}"
-                            Background="Transparent" Foreground="#804040"
-                            Padding="6,4" FontSize="13"
-                            ToolTip.Tip="Gruppe löschen"/>
-                </StackPanel>
 
             </DockPanel>
         </Border>
@@ -126,27 +132,20 @@
                         <DataTemplate x:DataType="vm:ContactItemViewModel">
                             <Grid ColumnDefinitions="40,*" Margin="8,4">
                                 <Panel Grid.Column="0" Width="32" Height="32">
-                                    <!-- Initialen -->
-                                    <Ellipse Width="32" Height="32"
-                                             IsVisible="{Binding !HasAvatar}">
-                                        <Ellipse.Fill>
-                                            <SolidColorBrush Color="#3a3aff"/>
-                                        </Ellipse.Fill>
+                                    <Ellipse Width="32" Height="32" IsVisible="{Binding !HasAvatar}">
+                                        <Ellipse.Fill><SolidColorBrush Color="#3a3aff"/></Ellipse.Fill>
                                     </Ellipse>
                                     <TextBlock Text="{Binding Initials}"
                                                Foreground="White" FontSize="12" FontWeight="Bold"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"
                                                IsVisible="{Binding !HasAvatar}"/>
-                                    <!-- Gravatar -->
-                                    <Ellipse Width="32" Height="32"
-                                             IsVisible="{Binding HasAvatar}">
+                                    <Ellipse Width="32" Height="32" IsVisible="{Binding HasAvatar}">
                                         <Ellipse.Fill>
                                             <ImageBrush Source="{Binding AvatarBitmap}"
                                                         Stretch="UniformToFill"/>
                                         </Ellipse.Fill>
                                     </Ellipse>
                                 </Panel>
-
                                 <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
                                     <TextBlock Text="{Binding DisplayName}"
                                                Foreground="#e0e0ff" FontSize="13" FontWeight="SemiBold"
@@ -176,9 +175,7 @@
 
                     <StackPanel Orientation="Horizontal" Spacing="20" Margin="0,0,0,24">
                         <Panel Width="80" Height="80">
-                            <!-- Initialen-Fallback -->
-                            <Ellipse Width="80" Height="80"
-                                     IsVisible="{Binding !SelectedContact.HasAvatar}">
+                            <Ellipse Width="80" Height="80" IsVisible="{Binding !SelectedContact.HasAvatar}">
                                 <Ellipse.Fill>
                                     <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
                                         <GradientStop Color="#5a5aff" Offset="0"/>
@@ -190,9 +187,7 @@
                                        Foreground="White" FontSize="28" FontWeight="Bold"
                                        HorizontalAlignment="Center" VerticalAlignment="Center"
                                        IsVisible="{Binding !SelectedContact.HasAvatar}"/>
-                            <!-- Gravatar -->
-                            <Ellipse Width="80" Height="80"
-                                     IsVisible="{Binding SelectedContact.HasAvatar}">
+                            <Ellipse Width="80" Height="80" IsVisible="{Binding SelectedContact.HasAvatar}">
                                 <Ellipse.Fill>
                                     <ImageBrush Source="{Binding SelectedContact.AvatarBitmap}"
                                                 Stretch="UniformToFill"/>
@@ -220,8 +215,7 @@
                             <StackPanel Spacing="4"
                                         IsVisible="{Binding SelectedContact.PrimaryEmail,
                                             Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                                <TextBlock Text="E-MAIL" Foreground="#5050a0"
-                                           FontSize="10" FontWeight="Bold"/>
+                                <TextBlock Text="E-MAIL" Foreground="#5050a0" FontSize="10" FontWeight="Bold"/>
                                 <TextBlock Text="{Binding SelectedContact.PrimaryEmail}"
                                            Foreground="#7070ff" FontSize="14"/>
                             </StackPanel>
@@ -229,8 +223,7 @@
                             <StackPanel Spacing="4"
                                         IsVisible="{Binding SelectedContact.PrimaryPhone,
                                             Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                                <TextBlock Text="TELEFON" Foreground="#5050a0"
-                                           FontSize="10" FontWeight="Bold"/>
+                                <TextBlock Text="TELEFON" Foreground="#5050a0" FontSize="10" FontWeight="Bold"/>
                                 <TextBlock Text="{Binding SelectedContact.PrimaryPhone}"
                                            Foreground="#c0c0e0" FontSize="14"/>
                             </StackPanel>
@@ -238,20 +231,17 @@
                             <StackPanel Spacing="4"
                                         IsVisible="{Binding SelectedContact.Website,
                                             Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                                <TextBlock Text="WEBSITE" Foreground="#5050a0"
-                                           FontSize="10" FontWeight="Bold"/>
+                                <TextBlock Text="WEBSITE" Foreground="#5050a0" FontSize="10" FontWeight="Bold"/>
                                 <TextBlock x:Name="WebsiteText"
                                            Text="{Binding SelectedContact.Website}"
                                            Foreground="#7070ff" FontSize="14"
-                                           TextDecorations="Underline"
-                                           Cursor="Hand"/>
+                                           TextDecorations="Underline" Cursor="Hand"/>
                             </StackPanel>
 
                             <StackPanel Spacing="4"
                                         IsVisible="{Binding SelectedContact.Street,
                                             Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                                <TextBlock Text="ADRESSE" Foreground="#5050a0"
-                                           FontSize="10" FontWeight="Bold"/>
+                                <TextBlock Text="ADRESSE" Foreground="#5050a0" FontSize="10" FontWeight="Bold"/>
                                 <TextBlock Foreground="#c0c0e0" FontSize="14">
                                     <TextBlock.Text>
                                         <MultiBinding StringFormat="{}{0}&#10;{1} {2}&#10;{3}">
@@ -271,11 +261,9 @@
                             IsVisible="{Binding SelectedContact.Notes,
                                 Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                         <StackPanel Spacing="6">
-                            <TextBlock Text="NOTIZEN" Foreground="#5050a0"
-                                       FontSize="10" FontWeight="Bold"/>
+                            <TextBlock Text="NOTIZEN" Foreground="#5050a0" FontSize="10" FontWeight="Bold"/>
                             <TextBlock Text="{Binding SelectedContact.Notes}"
-                                       Foreground="#c0c0e0" FontSize="13"
-                                       TextWrapping="Wrap"/>
+                                       Foreground="#c0c0e0" FontSize="13" TextWrapping="Wrap"/>
                         </StackPanel>
                     </Border>
 
@@ -376,6 +364,25 @@
                                      CornerRadius="6" Padding="10,6"/>
                         </StackPanel>
                     </Grid>
+
+                    <!-- Gruppen-Zuordnung -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Gruppe" Foreground="#8080a0" FontSize="12"/>
+                        <ComboBox ItemsSource="{Binding AssignableGroups}"
+                                  SelectedItem="{Binding EditContactGroup}"
+                                  HorizontalAlignment="Stretch"
+                                  CornerRadius="6" Padding="10,6">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ContactGroupViewModel">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="{Binding Icon}" FontSize="13"/>
+                                        <TextBlock Text="{Binding Name}"
+                                                   Foreground="#c0c0e0" FontSize="13"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
 
                     <StackPanel Spacing="4">
                         <TextBlock Text="Notizen" Foreground="#8080a0" FontSize="12"/>

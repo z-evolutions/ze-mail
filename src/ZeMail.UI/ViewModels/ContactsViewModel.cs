@@ -78,8 +78,14 @@ public partial class ContactsViewModel : ViewModelBase
     public ObservableCollection<ContactItemViewModel>  FilteredContacts { get; } = [];
     public ObservableCollection<ContactGroupViewModel> Groups           { get; } = [];
 
+    // Gruppen ohne "Alle Kontakte" — für das Dropdown im Bearbeitungsmodus
+    public ObservableCollection<ContactGroupViewModel> AssignableGroups { get; } = [];
+
     [ObservableProperty] private ContactItemViewModel?  _selectedContact;
     [ObservableProperty] private ContactGroupViewModel? _selectedGroup;
+
+    // Gruppen-Zuordnung im Edit-Modus
+    [ObservableProperty] private ContactGroupViewModel? _editContactGroup;
 
     [ObservableProperty] private string _editDisplayName  = string.Empty;
     [ObservableProperty] private string _editOrganization = string.Empty;
@@ -118,17 +124,25 @@ public partial class ContactsViewModel : ViewModelBase
                       .GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
 
         Groups.Clear();
-        Groups.Add(new ContactGroupViewModel { Id = Guid.Empty, Name = "Alle Kontakte", Icon = "👤" });
+        AssignableGroups.Clear();
+
+        var noGroup = new ContactGroupViewModel { Id = Guid.Empty, Name = "Alle Kontakte", Icon = "👤" };
+        Groups.Add(noGroup);
+        AssignableGroups.Add(new ContactGroupViewModel { Id = Guid.Empty, Name = "— Keine Gruppe —", Icon = "" });
+
         foreach (var g in db.ContactGroups.OrderBy(g => g.Name).ToList())
         {
-            Groups.Add(new ContactGroupViewModel
+            var vm = new ContactGroupViewModel
             {
                 Id    = g.Id,
                 Name  = g.Name,
                 Icon  = g.Icon  ?? "👥",
                 Color = g.Color ?? "#3a3aff",
-            });
+            };
+            Groups.Add(vm);
+            AssignableGroups.Add(vm);
         }
+
         SelectedGroup = Groups.FirstOrDefault();
     }
 
@@ -220,6 +234,16 @@ public partial class ContactsViewModel : ViewModelBase
         EditPostalCode   = value.PostalCode;
         EditCountry      = value.Country;
         EditNotes        = value.Notes;
+
+        // Aktuelle Gruppe des Kontakts ermitteln
+        if (App.Services is null) return;
+        using var scope = App.Services.CreateScope();
+        var db = scope.ServiceProvider
+                      .GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
+        var membership = db.ContactGroupMembers.FirstOrDefault(m => m.ContactId == value.Id);
+        EditContactGroup = membership is not null
+            ? AssignableGroups.FirstOrDefault(g => g.Id == membership.GroupId)
+            : AssignableGroups.FirstOrDefault(g => g.Id == Guid.Empty);
     }
 
     [RelayCommand]
@@ -231,6 +255,7 @@ public partial class ContactsViewModel : ViewModelBase
         EditEmail        = EditPhone = EditWebsite = string.Empty;
         EditStreet       = EditCity = EditPostalCode = EditCountry = string.Empty;
         EditNotes        = StatusMessage = string.Empty;
+        EditContactGroup = SelectedGroup?.Id != Guid.Empty ? SelectedGroup : AssignableGroups.FirstOrDefault(g => g.Id == Guid.Empty);
     }
 
     [RelayCommand] private void Edit() => IsEditMode = true;
@@ -259,6 +284,7 @@ public partial class ContactsViewModel : ViewModelBase
 
         var emails = SplitInput(EditEmail);
         var phones = SplitInput(EditPhone);
+        var targetGroupId = EditContactGroup?.Id ?? Guid.Empty;
 
         if (IsNewContact)
         {
@@ -279,13 +305,9 @@ public partial class ContactsViewModel : ViewModelBase
             db.Add(newContact);
             await db.SaveChangesAsync();
 
-            if (SelectedGroup is not null && SelectedGroup.Id != Guid.Empty)
+            if (targetGroupId != Guid.Empty)
             {
-                db.Add(new ContactGroupMember
-                {
-                    GroupId   = SelectedGroup.Id,
-                    ContactId = newContact.Id,
-                });
+                db.Add(new ContactGroupMember { GroupId = targetGroupId, ContactId = newContact.Id });
                 await db.SaveChangesAsync();
             }
         }
@@ -306,6 +328,18 @@ public partial class ContactsViewModel : ViewModelBase
                 c.Country      = NullIfEmpty(EditCountry);
                 c.Notes        = NullIfEmpty(EditNotes);
                 c.UpdatedAtUtc = DateTime.UtcNow;
+
+                // Gruppen-Zuordnung aktualisieren
+                var existingMemberships = db.ContactGroupMembers
+                    .Where(m => m.ContactId == SelectedContact.Id).ToList();
+                foreach (var m in existingMemberships)
+                    db.Remove(m);
+
+                if (targetGroupId != Guid.Empty)
+                {
+                    db.Add(new ContactGroupMember { GroupId = targetGroupId, ContactId = c.Id });
+                }
+
                 await db.SaveChangesAsync();
             }
         }
@@ -375,9 +409,7 @@ public partial class ContactsViewModel : ViewModelBase
                       .GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
 
         if (IsNewGroup)
-        {
             db.Add(new ContactGroup { Name = EditGroupName, Icon = EditGroupIcon });
-        }
         else if (SelectedGroup is not null && SelectedGroup.Id != Guid.Empty)
         {
             var g = db.ContactGroups.FirstOrDefault(x => x.Id == SelectedGroup.Id);

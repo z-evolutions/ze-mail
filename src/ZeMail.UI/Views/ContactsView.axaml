@@ -6,18 +6,17 @@
 
     <Grid ColumnDefinitions="280,*">
 
-        <!-- ── Linke Spalte: Kontaktliste ── -->
+        <!-- ── Linke Spalte: Liste ── -->
         <Border Grid.Column="0" Background="#0a0a1a"
                 BorderThickness="0,0,1,0" BorderBrush="#2a2a4a">
             <DockPanel>
 
-                <!-- Suchleiste + Neu-Button -->
+                <!-- Suche + Neu -->
                 <Border DockPanel.Dock="Top" Padding="12,10"
                         BorderThickness="0,0,0,1" BorderBrush="#2a2a4a">
-                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="8">
-                        <Border Grid.Row="0" Grid.Column="0"
-                                Background="#1a1a3a" CornerRadius="6"
-                                Padding="8,4">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Border Grid.Column="0" Background="#1a1a3a"
+                                CornerRadius="6" Padding="8,4">
                             <Grid ColumnDefinitions="Auto,*">
                                 <TextBlock Grid.Column="0" Text="🔍"
                                            Foreground="#6060a0" FontSize="12"
@@ -27,12 +26,10 @@
                                          PlaceholderText="Suchen…"
                                          Background="Transparent"
                                          BorderThickness="0"
-                                         Foreground="#c0c0e0"
-                                         FontSize="13"/>
+                                         Foreground="#c0c0e0" FontSize="13"/>
                             </Grid>
                         </Border>
-                        <Button Grid.Row="0" Grid.Column="1"
-                                Content="+ Neu"
+                        <Button Grid.Column="1" Content="+ Neu"
                                 Command="{Binding NewContactCommand}"
                                 Background="#3a3aff" Foreground="White"
                                 CornerRadius="6" Padding="10,5"
@@ -47,29 +44,27 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate x:DataType="vm:ContactItemViewModel">
                             <Grid ColumnDefinitions="44,*" Margin="8,4">
-
-                                <!-- Avatar -->
-                                <Border Grid.Column="0"
-                                        Width="36" Height="36"
-                                        CornerRadius="18"
-                                        Background="#3a3aff">
-                                    <TextBlock Text="{Binding Initials}"
-                                               Foreground="White"
-                                               FontSize="13" FontWeight="Bold"
-                                               HorizontalAlignment="Center"
-                                               VerticalAlignment="Center"/>
+                                <Border Grid.Column="0" Width="36" Height="36"
+                                        CornerRadius="18" Background="#3a3aff"
+                                        ClipToBounds="True">
+                                    <Panel>
+                                        <Image Source="{Binding AvatarUrl}"
+                                               IsVisible="{Binding AvatarUrl,
+                                                   Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                               Stretch="UniformToFill"/>
+                                        <TextBlock Text="{Binding Initials}"
+                                                   Foreground="White" FontSize="13" FontWeight="Bold"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   IsVisible="{Binding AvatarUrl,
+                                                       Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+                                    </Panel>
                                 </Border>
-
-                                <!-- Name + E-Mail -->
-                                <StackPanel Grid.Column="1" Spacing="2"
-                                            VerticalAlignment="Center">
+                                <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
                                     <TextBlock Text="{Binding DisplayName}"
-                                               Foreground="#e0e0ff"
-                                               FontSize="13" FontWeight="SemiBold"
+                                               Foreground="#e0e0ff" FontSize="13" FontWeight="SemiBold"
                                                TextTrimming="CharacterEllipsis"/>
                                     <TextBlock Text="{Binding PrimaryEmail}"
-                                               Foreground="#6060a0"
-                                               FontSize="11"
+                                               Foreground="#6060a0" FontSize="11"
                                                TextTrimming="CharacterEllipsis"/>
                                 </StackPanel>
                             </Grid>
@@ -84,102 +79,241 @@
             </DockPanel>
         </Border>
 
-        <!-- ── Rechte Spalte: Detailansicht / Bearbeiten ── -->
-        <ScrollViewer Grid.Column="1" Padding="28,24">
-            <StackPanel Spacing="16"
-                        IsVisible="{Binding HasSelection}">
+        <!-- ── Rechte Spalte ── -->
+        <ScrollViewer Grid.Column="1" Padding="32,28">
+            <StackPanel Spacing="0" IsVisible="{Binding HasSelection}">
 
-                <!-- Avatar + Name Header -->
-                <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,0,0,8">
-                    <Border Width="56" Height="56" CornerRadius="28"
-                            Background="#3a3aff">
-                        <Panel>
-                            <TextBlock Text="{Binding SelectedContact.Initials}"
-                                    Foreground="White" FontSize="20" FontWeight="Bold"
-                                    HorizontalAlignment="Center" VerticalAlignment="Center"
-                                    IsVisible="{Binding !IsNewContact}"/>
-                            <TextBlock Text="+"
-                                    Foreground="White" FontSize="24" FontWeight="Bold"
-                                    HorizontalAlignment="Center" VerticalAlignment="Center"
-                                    IsVisible="{Binding IsNewContact}"/>
-                        </Panel>
-                    </Border>
-                    <StackPanel VerticalAlignment="Center" Spacing="4">
-                        <TextBlock Text="{Binding SelectedContact.DisplayName}"
-                                   Foreground="#e0e0ff" FontSize="20" FontWeight="Bold"
-                                   IsVisible="{Binding !IsNewContact}"/>
-                        <TextBlock Text="Neuer Kontakt"
-                                   Foreground="#7070ff" FontSize="20" FontWeight="Bold"
-                                   IsVisible="{Binding IsNewContact}"/>
-                        <TextBlock Text="{Binding SelectedContact.Organization}"
-                                   Foreground="#6060a0" FontSize="13"
-                                   IsVisible="{Binding !IsNewContact}"/>
+                <!-- ── PROFILANSICHT ── -->
+                <StackPanel IsVisible="{Binding !IsEditMode}" Spacing="0">
+
+                    <!-- Avatar + Name -->
+                    <StackPanel Orientation="Horizontal" Spacing="20" Margin="0,0,0,24">
+                        <Border Width="72" Height="72" CornerRadius="36"
+                                Background="#3a3aff" ClipToBounds="True">
+                            <Panel>
+                                <Image Source="{Binding SelectedContact.AvatarUrl}"
+                                       IsVisible="{Binding SelectedContact.AvatarUrl,
+                                           Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                       Stretch="UniformToFill"/>
+                                <TextBlock Text="{Binding SelectedContact.Initials}"
+                                           Foreground="White" FontSize="26" FontWeight="Bold"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           IsVisible="{Binding SelectedContact.AvatarUrl,
+                                               Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+                            </Panel>
+                        </Border>
+                        <StackPanel VerticalAlignment="Center" Spacing="4">
+                            <TextBlock Text="{Binding SelectedContact.DisplayName}"
+                                       Foreground="#e0e0ff" FontSize="22" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding SelectedContact.Organization}"
+                                       Foreground="#8080c0" FontSize="14"
+                                       IsVisible="{Binding SelectedContact.Organization,
+                                           Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                            <TextBlock Text="{Binding SelectedContact.Department}"
+                                       Foreground="#6060a0" FontSize="12"
+                                       IsVisible="{Binding SelectedContact.Department,
+                                           Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                        </StackPanel>
                     </StackPanel>
+
+                    <!-- Kontaktdaten -->
+                    <Border Background="#12122a" CornerRadius="10" Padding="20" Margin="0,0,0,12">
+                        <StackPanel Spacing="14">
+
+                            <!-- E-Mail -->
+                            <StackPanel Spacing="4"
+                                        IsVisible="{Binding SelectedContact.PrimaryEmail,
+                                            Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                <TextBlock Text="E-MAIL" Foreground="#5050a0"
+                                           FontSize="10" FontWeight="Bold"/>
+                                <TextBlock Text="{Binding SelectedContact.PrimaryEmail}"
+                                           Foreground="#7070ff" FontSize="14"/>
+                            </StackPanel>
+
+                            <!-- Telefon -->
+                            <StackPanel Spacing="4"
+                                        IsVisible="{Binding SelectedContact.PrimaryPhone,
+                                            Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                <TextBlock Text="TELEFON" Foreground="#5050a0"
+                                           FontSize="10" FontWeight="Bold"/>
+                                <TextBlock Text="{Binding SelectedContact.PrimaryPhone}"
+                                           Foreground="#c0c0e0" FontSize="14"/>
+                            </StackPanel>
+
+                            <!-- Website -->
+                            <StackPanel Spacing="4"
+                                        IsVisible="{Binding SelectedContact.Website,
+                                            Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                <TextBlock Text="WEBSITE" Foreground="#5050a0"
+                                           FontSize="10" FontWeight="Bold"/>
+                                <TextBlock Text="{Binding SelectedContact.Website}"
+                                           Foreground="#7070ff" FontSize="14"/>
+                            </StackPanel>
+
+                            <!-- Adresse -->
+                            <StackPanel Spacing="4"
+                                        IsVisible="{Binding SelectedContact.Street,
+                                            Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                <TextBlock Text="ADRESSE" Foreground="#5050a0"
+                                           FontSize="10" FontWeight="Bold"/>
+                                <TextBlock Foreground="#c0c0e0" FontSize="14">
+                                    <TextBlock.Text>
+                                        <MultiBinding StringFormat="{}{0}&#10;{1} {2}&#10;{3}">
+                                            <Binding Path="SelectedContact.Street"/>
+                                            <Binding Path="SelectedContact.PostalCode"/>
+                                            <Binding Path="SelectedContact.City"/>
+                                            <Binding Path="SelectedContact.Country"/>
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                            </StackPanel>
+
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Notizen -->
+                    <Border Background="#12122a" CornerRadius="10" Padding="20" Margin="0,0,0,20"
+                            IsVisible="{Binding SelectedContact.Notes,
+                                Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="NOTIZEN" Foreground="#5050a0"
+                                       FontSize="10" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding SelectedContact.Notes}"
+                                       Foreground="#c0c0e0" FontSize="13"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Aktionen -->
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="✉ Mail schreiben"
+                                Command="{Binding WriteMailCommand}"
+                                Background="#1a1a4a" Foreground="#c0c0ff"
+                                CornerRadius="6" Padding="14,8"
+                                IsVisible="{Binding SelectedContact.PrimaryEmail,
+                                    Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                        <Button Content="✏ Bearbeiten"
+                                Command="{Binding EditCommand}"
+                                Background="#2a2a5a" Foreground="#c0c0ff"
+                                CornerRadius="6" Padding="14,8"/>
+                        <Button Content="🗑 Löschen"
+                                Command="{Binding DeleteCommand}"
+                                Background="#4a1a1a" Foreground="#ff6060"
+                                CornerRadius="6" Padding="14,8"/>
+                    </StackPanel>
+
                 </StackPanel>
 
-                <!-- Felder -->
-                <StackPanel Spacing="4">
-                    <TextBlock Text="Name *" Foreground="#8080a0" FontSize="12"/>
-                    <TextBox Text="{Binding EditDisplayName}"
-                             PlaceholderText="Vor- und Nachname"
-                             CornerRadius="6" Padding="10,6"/>
-                </StackPanel>
+                <!-- ── BEARBEITUNGSANSICHT ── -->
+                <StackPanel IsVisible="{Binding IsEditMode}" Spacing="14">
 
-                <StackPanel Spacing="4">
-                    <TextBlock Text="Organisation" Foreground="#8080a0" FontSize="12"/>
-                    <TextBox Text="{Binding EditOrganization}"
-                             PlaceholderText="optional"
-                             CornerRadius="6" Padding="10,6"/>
-                </StackPanel>
+                    <TextBlock Text="{Binding IsNewContact,
+                                   Converter={x:Static BoolConverters.Not},
+                                   ConverterParameter='Kontakt bearbeiten'}"
+                               Foreground="#7070ff" FontSize="18" FontWeight="Bold"
+                               Margin="0,0,0,8"/>
 
-                <StackPanel Spacing="4">
-                    <TextBlock Text="E-Mail" Foreground="#8080a0" FontSize="12"/>
-                    <TextBox Text="{Binding EditEmail}"
-                             PlaceholderText="mehrere mit Komma trennen"
-                             CornerRadius="6" Padding="10,6"/>
-                </StackPanel>
+                    <!-- Name -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Name *" Foreground="#8080a0" FontSize="12"/>
+                        <TextBox Text="{Binding EditDisplayName}"
+                                 PlaceholderText="Vor- und Nachname"
+                                 CornerRadius="6" Padding="10,6"/>
+                    </StackPanel>
 
-                <StackPanel Spacing="4">
-                    <TextBlock Text="Telefon" Foreground="#8080a0" FontSize="12"/>
-                    <TextBox Text="{Binding EditPhone}"
-                             PlaceholderText="mehrere mit Komma trennen"
-                             CornerRadius="6" Padding="10,6"/>
-                </StackPanel>
+                    <!-- Organisation + Abteilung -->
+                    <Grid ColumnDefinitions="*,16,*">
+                        <StackPanel Grid.Column="0" Spacing="4">
+                            <TextBlock Text="Organisation" Foreground="#8080a0" FontSize="12"/>
+                            <TextBox Text="{Binding EditOrganization}"
+                                     PlaceholderText="optional"
+                                     CornerRadius="6" Padding="10,6"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Spacing="4">
+                            <TextBlock Text="Abteilung" Foreground="#8080a0" FontSize="12"/>
+                            <TextBox Text="{Binding EditDepartment}"
+                                     PlaceholderText="optional"
+                                     CornerRadius="6" Padding="10,6"/>
+                        </StackPanel>
+                    </Grid>
 
-                <StackPanel Spacing="4">
-                    <TextBlock Text="Notizen" Foreground="#8080a0" FontSize="12"/>
-                    <TextBox Text="{Binding EditNotes}"
-                             AcceptsReturn="True"
-                             TextWrapping="Wrap"
-                             Height="80"
-                             CornerRadius="6" Padding="10,6"/>
-                </StackPanel>
+                    <!-- E-Mail + Telefon -->
+                    <Grid ColumnDefinitions="*,16,*">
+                        <StackPanel Grid.Column="0" Spacing="4">
+                            <TextBlock Text="E-Mail" Foreground="#8080a0" FontSize="12"/>
+                            <TextBox Text="{Binding EditEmail}"
+                                     PlaceholderText="mehrere mit Komma"
+                                     CornerRadius="6" Padding="10,6"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Spacing="4">
+                            <TextBlock Text="Telefon" Foreground="#8080a0" FontSize="12"/>
+                            <TextBox Text="{Binding EditPhone}"
+                                     PlaceholderText="mehrere mit Komma"
+                                     CornerRadius="6" Padding="10,6"/>
+                        </StackPanel>
+                    </Grid>
 
-                <!-- Aktionen -->
-                <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,8,0,0">
-                    <Button Grid.Column="0"
-                            Content="🗑 Löschen"
-                            Command="{Binding DeleteCommand}"
-                            IsVisible="{Binding !IsNewContact}"
-                            Background="#4a1a1a" Foreground="#ff6060"
-                            CornerRadius="6" Padding="12,8"/>
-                    <TextBlock Grid.Column="1"
-                               Text="{Binding StatusMessage}"
-                               Foreground="#a0a0ff" FontSize="12"
-                               VerticalAlignment="Center" Margin="12,0"/>
-                    <Button Grid.Column="2"
-                            Content="Mail schreiben"
-                            Background="#1a1a4a" Foreground="#c0c0ff"
-                            CornerRadius="6" Padding="12,8"
-                            Margin="0,0,8,0"
-                            IsVisible="{Binding !IsNewContact}"/>
-                    <Button Grid.Column="3"
-                            Content="Speichern ✓"
-                            Command="{Binding SaveCommand}"
-                            Background="#3a3aff" Foreground="White"
-                            FontWeight="SemiBold" CornerRadius="6"
-                            Padding="16,8"/>
-                </Grid>
+                    <!-- Website -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Website" Foreground="#8080a0" FontSize="12"/>
+                        <TextBox Text="{Binding EditWebsite}"
+                                 PlaceholderText="https://"
+                                 CornerRadius="6" Padding="10,6"/>
+                    </StackPanel>
+
+                    <!-- Adresse -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Straße" Foreground="#8080a0" FontSize="12"/>
+                        <TextBox Text="{Binding EditStreet}"
+                                 PlaceholderText="Straße und Hausnummer"
+                                 CornerRadius="6" Padding="10,6"/>
+                    </StackPanel>
+                    <Grid ColumnDefinitions="120,16,*,16,*">
+                        <StackPanel Grid.Column="0" Spacing="4">
+                            <TextBlock Text="PLZ" Foreground="#8080a0" FontSize="12"/>
+                            <TextBox Text="{Binding EditPostalCode}"
+                                     CornerRadius="6" Padding="10,6"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Spacing="4">
+                            <TextBlock Text="Stadt" Foreground="#8080a0" FontSize="12"/>
+                            <TextBox Text="{Binding EditCity}"
+                                     CornerRadius="6" Padding="10,6"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="4" Spacing="4">
+                            <TextBlock Text="Land" Foreground="#8080a0" FontSize="12"/>
+                            <TextBox Text="{Binding EditCountry}"
+                                     CornerRadius="6" Padding="10,6"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Notizen -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Notizen" Foreground="#8080a0" FontSize="12"/>
+                        <TextBox Text="{Binding EditNotes}"
+                                 AcceptsReturn="True" TextWrapping="Wrap"
+                                 Height="80" CornerRadius="6" Padding="10,6"/>
+                    </StackPanel>
+
+                    <!-- Footer -->
+                    <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,4,0,0">
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding StatusMessage}"
+                                   Foreground="#a0a0ff" FontSize="12"
+                                   VerticalAlignment="Center"/>
+                        <Button Grid.Column="1"
+                                Content="Abbrechen"
+                                Command="{Binding CancelEditCommand}"
+                                Background="Transparent" Foreground="#6060a0"
+                                Padding="12,8" Margin="0,0,8,0"/>
+                        <Button Grid.Column="2"
+                                Content="Speichern ✓"
+                                Command="{Binding SaveCommand}"
+                                Background="#3a3aff" Foreground="White"
+                                FontWeight="SemiBold" CornerRadius="6"
+                                Padding="16,8"/>
+                    </Grid>
+
+                </StackPanel>
 
             </StackPanel>
         </ScrollViewer>

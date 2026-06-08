@@ -66,6 +66,13 @@ public partial class MainWindowViewModel : ViewModelBase
             await win.ShowDialog(dt.MainWindow!);
         }
     }
+
+    [RelayCommand]
+    private async Task Sync()
+    {
+        if (CurrentView is MailboxViewModel mailbox)
+            await mailbox.SyncCommand.ExecuteAsync(null);
+    }
 }
 
 public record NavItem(string Label, string Icon, string Key);

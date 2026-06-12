@@ -14,8 +14,7 @@
                 <TextBlock DockPanel.Dock="Top"
                            Text="ORDNER"
                            Foreground="#6060a0"
-                           FontSize="11"
-                           FontWeight="Bold"
+                           FontSize="11" FontWeight="Bold"
                            Margin="12,16,12,8"/>
                 <ListBox ItemsSource="{Binding Folders}"
                          SelectedItem="{Binding SelectedFolder}"
@@ -23,16 +22,12 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate x:DataType="m:FolderViewModel">
                             <Panel>
-                                <!-- Account-Header -->
                                 <TextBlock Text="{Binding AccountName}"
-                                        IsVisible="{Binding IsAccountHeader}"
-                                        Foreground="#5050a0"
-                                        FontSize="10"
-                                        FontWeight="Bold"
-                                        Margin="8,12,4,2"/>
-
-                                <!-- Normaler Ordner -->
-                                <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,2,4,2"
+                                           IsVisible="{Binding IsAccountHeader}"
+                                           Foreground="#5050a0" FontSize="10"
+                                           FontWeight="Bold" Margin="8,12,4,2"/>
+                                <StackPanel Orientation="Horizontal" Spacing="8"
+                                            Margin="12,2,4,2"
                                             IsVisible="{Binding !IsAccountHeader}">
                                     <TextBlock Text="{Binding Icon}" FontSize="14"/>
                                     <TextBlock Text="{Binding Name}" Foreground="#c0c0e0" FontSize="13"/>
@@ -58,24 +53,38 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="m:MessageViewModel">
                         <Border Padding="10,8" BorderThickness="0,0,0,1" BorderBrush="#1a1a3a">
-                            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
-                                <TextBlock Grid.Row="0" Grid.Column="0"
-                                           Text="{Binding SenderDisplay}"
-                                           FontWeight="SemiBold"
-                                           Foreground="#e0e0ff"
-                                           FontSize="13"
-                                           TextTrimming="CharacterEllipsis"/>
-                                <TextBlock Grid.Row="0" Grid.Column="1"
-                                           Text="{Binding DisplayDate}"
-                                           Foreground="#6060a0"
-                                           FontSize="11"
-                                           Margin="8,0,0,0"/>
-                                <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                                           Text="{Binding Subject}"
-                                           Foreground="#a0a0c0"
-                                           FontSize="12"
-                                           TextTrimming="CharacterEllipsis"
-                                           Margin="0,2,0,0"/>
+                            <Grid ColumnDefinitions="44,*">
+
+                                <!-- Avatar -->
+                                <Border Grid.Column="0"
+                                        Width="36" Height="36"
+                                        CornerRadius="18"
+                                        ClipToBounds="True"
+                                        VerticalAlignment="Center">
+                                    <Image Source="{Binding AvatarBitmap}"
+                                           Width="36" Height="36"
+                                           Stretch="UniformToFill"/>
+                                </Border>
+
+                                <!-- Text -->
+                                <Grid Grid.Column="1" RowDefinitions="Auto,Auto">
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding SenderDisplay}"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="#e0e0ff" FontSize="13"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding DisplayDate}"
+                                                   Foreground="#6060a0" FontSize="11"
+                                                   Margin="8,0,0,0"/>
+                                    </Grid>
+                                    <TextBlock Grid.Row="1"
+                                               Text="{Binding Subject}"
+                                               Foreground="#a0a0c0" FontSize="12"
+                                               TextTrimming="CharacterEllipsis"
+                                               Margin="0,2,0,0"/>
+                                </Grid>
                             </Grid>
                         </Border>
                     </DataTemplate>
@@ -104,15 +113,30 @@
                                Foreground="#e0e0ff" TextWrapping="Wrap"
                                Margin="0,0,0,8"/>
 
-                    <!-- Absender + Datum -->
-                    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
-                        <StackPanel Grid.Column="0" Spacing="2">
+                    <!-- Avatar + Absender + Datum -->
+                    <Grid Grid.Row="1" ColumnDefinitions="52,*,Auto" Margin="0,0,0,10">
+
+                        <!-- Avatar -->
+                        <Border Grid.Column="0"
+                                Width="40" Height="40"
+                                CornerRadius="20"
+                                ClipToBounds="True"
+                                VerticalAlignment="Center">
+                            <Image Source="{Binding SelectedMessage.AvatarBitmap}"
+                                   Width="40" Height="40"
+                                   Stretch="UniformToFill"/>
+                        </Border>
+
+                        <!-- Name + Adresse -->
+                        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
                             <TextBlock Text="{Binding SelectedMessage.SenderDisplay}"
                                        Foreground="#c0c0ff" FontWeight="SemiBold" FontSize="13"/>
                             <TextBlock Text="{Binding SelectedMessage.FromAddress}"
                                        Foreground="#6060a0" FontSize="11"/>
                         </StackPanel>
-                        <TextBlock Grid.Column="1"
+
+                        <!-- Datum -->
+                        <TextBlock Grid.Column="2"
                                    Text="{Binding SelectedMessage.DisplayDate}"
                                    Foreground="#6060a0" FontSize="12"
                                    VerticalAlignment="Center"/>

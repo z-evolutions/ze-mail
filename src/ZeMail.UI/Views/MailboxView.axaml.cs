@@ -2,12 +2,17 @@ using System;
 using System.Net;
 using System.Text;
 using Avalonia.Controls;
+using ZeMail.UI.Services;
 using ZeMail.UI.ViewModels;
 
 namespace ZeMail.UI.Views;
 
 public partial class MailboxView : UserControl
 {
+    private const string DarkModeStyle =
+        "background:#0a0a1a; color:#c0c0d0; font-family:sans-serif; " +
+        "font-size:14px; line-height:1.6; padding:0; margin:0;";
+
     public MailboxView()
     {
         InitializeComponent();
@@ -48,26 +53,25 @@ public partial class MailboxView : UserControl
         }
 
         var msg = vm.SelectedMessage;
-
         string html;
+
         if (!string.IsNullOrEmpty(msg.BodyHtml))
         {
-            html = msg.BodyHtml.Contains("<body", StringComparison.OrdinalIgnoreCase)
-                ? msg.BodyHtml.Replace(
-                    "<body",
-                    "<body style=\"background:#0a0a1a;color:#c0c0d0;font-family:sans-serif;\"",
-                    StringComparison.OrdinalIgnoreCase)
-                : "<html><body style='background:#0a0a1a;color:#c0c0d0;font-family:sans-serif;'>"
-                  + msg.BodyHtml + "</body></html>";
+            html = HtmlSanitizer.SanitizeAndWrap(msg.BodyHtml, DarkModeStyle);
         }
         else
         {
-            html = "<!DOCTYPE html><html><head><meta charset='utf-8'><style>"
-                   + "body{font-family:sans-serif;font-size:14px;"
-                   + "background:#0a0a1a;color:#c0c0d0;padding:24px;line-height:1.6;}"
-                   + "a{color:#7070ff;}</style></head><body><pre style='white-space:pre-wrap;font-family:sans-serif'>"
-                   + WebUtility.HtmlEncode(msg.BodyText ?? "")
-                   + "</pre></body></html>";
+            html =
+                "<!DOCTYPE html><html><head>" +
+                "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline';\">" +
+                "<meta charset='utf-8'>" +
+                "<style>" +
+                "body { " + DarkModeStyle + " padding: 24px; } " +
+                "pre { white-space: pre-wrap; font-family: sans-serif; font-size: 14px; } " +
+                "a { color: #7070ff; }" +
+                "</style></head><body>" +
+                "<pre>" + WebUtility.HtmlEncode(msg.BodyText ?? string.Empty) + "</pre>" +
+                "</body></html>";
         }
 
         var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(html));

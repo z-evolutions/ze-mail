@@ -1,4 +1,5 @@
 using System;
+using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ZeMail.UI.Models;
@@ -23,6 +24,9 @@ public partial class MessageViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isStarred;
+
+    [ObservableProperty]
+    private Bitmap? _avatarBitmap;
 
     public string DisplayDate => ReceivedAtUtc.ToLocalTime() switch
     {

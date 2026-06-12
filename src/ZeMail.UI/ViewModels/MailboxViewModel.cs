@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using ZeMail.UI.Models;
+using ZeMail.UI.Services;
 using ZeMail.UI.Views;
 
 namespace ZeMail.UI.ViewModels;
@@ -134,7 +135,7 @@ public partial class MailboxViewModel : ViewModelBase
         Messages.Clear();
         foreach (var m in messages)
         {
-            Messages.Add(new MessageViewModel
+            var vm = new MessageViewModel
             {
                 Id             = m.Id,
                 Subject        = m.Subject,
@@ -146,10 +147,19 @@ public partial class MailboxViewModel : ViewModelBase
                 HasAttachments = m.Attachments.Any(),
                 BodyText       = m.BodyText,
                 BodyHtml       = m.BodyHtml
-            });
+            };
+            Messages.Add(vm);
+            _ = LoadAvatarAsync(vm);
         }
 
         SelectedMessage = Messages.FirstOrDefault();
+    }
+
+    // ── Avatar laden ─────────────────────────────────────────────────────────
+    private static async Task LoadAvatarAsync(MessageViewModel msg)
+    {
+        var bitmap = await AvatarService.ResolveAsync(msg.FromAddress, msg.FromName);
+        msg.AvatarBitmap = bitmap;
     }
 
     // ── Body nachladen ────────────────────────────────────────────────────────

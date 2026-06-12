@@ -95,6 +95,11 @@ public partial class TaskListViewModel : ViewModelBase
     public bool IsSystem     { get; }
     public string? SystemKey { get; }
 
+    // PathData für System-Listen (PathIcon in Sidebar), null für custom Listen (Emoji)
+    public string? PathData  { get; }
+    public string PathColor  { get; }
+    public bool HasPathIcon  => PathData is not null;
+
     [ObservableProperty] private string _name;
     [ObservableProperty] private string _icon;
     [ObservableProperty] private string _color;
@@ -103,6 +108,20 @@ public partial class TaskListViewModel : ViewModelBase
     public bool CanDelete => !IsSystem;
     public bool CanRename => !IsSystem;
 
+    // System-Listen mit PathIcon
+    public TaskListViewModel(string name, string pathData, string pathColor, string color, string systemKey)
+    {
+        _entity   = null;
+        _name     = name;
+        _icon     = string.Empty;
+        _color    = color;
+        IsSystem  = true;
+        SystemKey = systemKey;
+        PathData  = pathData;
+        PathColor = pathColor;
+    }
+
+    // Custom Listen mit Emoji-Icon
     public TaskListViewModel(TaskList entity)
     {
         _entity   = entity;
@@ -111,16 +130,8 @@ public partial class TaskListViewModel : ViewModelBase
         _color    = entity.Color;
         IsSystem  = entity.IsSystem;
         SystemKey = entity.SystemKey;
-    }
-
-    public TaskListViewModel(string name, string icon, string color, string systemKey)
-    {
-        _entity   = null;
-        _name     = name;
-        _icon     = icon;
-        _color    = color;
-        IsSystem  = true;
-        SystemKey = systemKey;
+        PathData  = null;
+        PathColor = entity.Color;
     }
 
     public TaskList? ToEntity() => _entity;
@@ -131,6 +142,13 @@ public partial class TasksViewModel : ViewModelBase, IDisposable
 {
     private IServiceScope? _scope;
     private IZeMailDbContext? _db;
+
+    // Pfade für System-Listen
+    private const string PathSun      = "M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,2L14.39,5.42C13.65,5.15 12.84,5 12,5C11.16,5 10.35,5.15 9.61,5.42L12,2M3.34,7L7.5,6.65C6.9,7.16 6.36,7.78 5.94,8.5C5.5,9.24 5.25,10 5.11,10.79L3.34,7M3.36,17L5.12,13.23C5.26,14 5.53,14.78 5.95,15.5C6.37,16.24 6.91,16.86 7.5,17.37L3.36,17M20.65,7L18.88,10.79C18.74,10 18.47,9.23 18.05,8.5C17.63,7.78 17.1,7.15 16.5,6.64L20.65,7M20.64,17L16.5,17.36C17.09,16.85 17.62,16.22 18.04,15.5C18.46,14.77 18.73,14 18.87,13.21L20.64,17M12,22L9.59,18.56C10.33,18.83 11.14,19 12,19C12.82,19 13.63,18.83 14.37,18.56L12,22Z";
+    private const string PathAlert    = "M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z";
+    private const string PathCalendar = "M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,13H12V18H17V13Z";
+    private const string PathAll      = "M20,11H23V13H20V11M1,11H4V13H1V11M13,1V4H11V1H13M4.92,3.5L7.05,5.64L5.63,7.05L3.5,4.93L4.92,3.5M16.95,5.63L19.07,3.5L20.5,4.93L18.36,7.05L16.95,5.63M12,6A6,6 0 0,1 18,12C18,14.22 16.79,16.16 15,17.2V19A1,1 0 0,1 14,20H10A1,1 0 0,1 9,19V17.2C7.21,16.16 6,14.22 6,12A6,6 0 0,1 12,6M14,21V22A1,1 0 0,1 13,23H11A1,1 0 0,1 10,22V21H14Z";
+    private const string PathCheck    = "M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z";
 
     // ── Prioritäts-Optionen ──────────────────────────────────────────────────
     public record PriorityOption(TaskPriority Value, string Label);
@@ -202,11 +220,11 @@ public partial class TasksViewModel : ViewModelBase, IDisposable
     private async Task BuildListsAsync()
     {
         Lists.Clear();
-        Lists.Add(new TaskListViewModel("Mein Tag",      "☀",  "#ffaa00", "myday"));
-        Lists.Add(new TaskListViewModel("Wichtig",       "⭐", "#ff6060", "important"));
-        Lists.Add(new TaskListViewModel("Geplant",       "📅", "#60aaff", "planned"));
-        Lists.Add(new TaskListViewModel("Alle Aufgaben", "☑",  "#7070ff", "all"));
-        Lists.Add(new TaskListViewModel("Erledigt",      "✅", "#40a060", "completed"));
+        Lists.Add(new TaskListViewModel("Mein Tag",      PathSun,      "#ffaa00", "#ffaa00", "myday"));
+        Lists.Add(new TaskListViewModel("Wichtig",       PathAlert,    "#ff6060", "#ff6060", "important"));
+        Lists.Add(new TaskListViewModel("Geplant",       PathCalendar, "#60aaff", "#60aaff", "planned"));
+        Lists.Add(new TaskListViewModel("Alle Aufgaben", PathAll,      "#7070ff", "#7070ff", "all"));
+        Lists.Add(new TaskListViewModel("Erledigt",      PathCheck,    "#40a060", "#40a060", "completed"));
 
         if (_db is null) return;
         var dbLists = await Task.Run(() => _db.TaskLists

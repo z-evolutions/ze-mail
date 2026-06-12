@@ -44,6 +44,28 @@ public partial class MailboxViewModel : ViewModelBase
             LoadDemoData();
     }
 
+    // ── Ordnernamen lokalisieren ──────────────────────────────────────────────
+    private static string LocalizeFolderName(string name) => name.ToLower() switch
+    {
+        "inbox"         => "Posteingang",
+        "sent"          => "Gesendet",
+        "sent items"    => "Gesendet",
+        "sent messages" => "Gesendet",
+        "drafts"        => "Entwürfe",
+        "draft"         => "Entwürfe",
+        "trash"         => "Papierkorb",
+        "deleted"       => "Papierkorb",
+        "deleted items" => "Papierkorb",
+        "junk"          => "Spam",
+        "spam"          => "Spam",
+        "junk email"    => "Spam",
+        "junk e-mail"   => "Spam",
+        "archive"       => "Archiv",
+        "archives"      => "Archiv",
+        "outbox"        => "Postausgang",
+        _               => name
+    };
+
     // ── DB laden ─────────────────────────────────────────────────────────────
     private async Task LoadFromDbAsync()
     {
@@ -61,7 +83,6 @@ public partial class MailboxViewModel : ViewModelBase
         Folders.Clear();
         foreach (var account in accounts)
         {
-            // Account-Header
             Folders.Add(new FolderViewModel
             {
                 IsAccountHeader = true,
@@ -80,7 +101,7 @@ public partial class MailboxViewModel : ViewModelBase
                 Folders.Add(new FolderViewModel
                 {
                     Id          = folder.Id,
-                    Name        = folder.Name,
+                    Name        = LocalizeFolderName(folder.Name),
                     FullPath    = folder.FullPath,
                     AccountName = account.Name
                 });
@@ -280,10 +301,10 @@ public partial class MailboxViewModel : ViewModelBase
     // ── Demodaten ─────────────────────────────────────────────────────────────
     private void LoadDemoData()
     {
-        Folders.Add(new FolderViewModel { Name = "Inbox",  FullPath = "INBOX"  });
-        Folders.Add(new FolderViewModel { Name = "Sent",   FullPath = "Sent"   });
-        Folders.Add(new FolderViewModel { Name = "Drafts", FullPath = "Drafts" });
-        Folders.Add(new FolderViewModel { Name = "Trash",  FullPath = "Trash"  });
+        Folders.Add(new FolderViewModel { Name = "Posteingang", FullPath = "INBOX"  });
+        Folders.Add(new FolderViewModel { Name = "Gesendet",    FullPath = "Sent"   });
+        Folders.Add(new FolderViewModel { Name = "Entwürfe",    FullPath = "Drafts" });
+        Folders.Add(new FolderViewModel { Name = "Papierkorb",  FullPath = "Trash"  });
 
         SelectedFolder = Folders[0];
 

@@ -20,10 +20,10 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public List<NavItem> NavItems { get; } =
     [
-        new NavItem("Mail",     "✉",  "Mail"),
-        new NavItem("Kalender", "📅", "Calendar"),
-        new NavItem("Kontakte", "👤", "Contacts"),
-        new NavItem("Aufgaben", "☑", "Tasks"),
+        new NavItem("Mail",     "M20,8L12,13L4,8V6L12,11L20,6M20,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.1,4 20,4Z",  "Mail"),
+        new NavItem("Kalender", "M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,13H12V18H17V13Z", "Calendar"),
+        new NavItem("Kontakte", "M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z", "Contacts"),
+        new NavItem("Aufgaben", "M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z", "Tasks"),
     ];
 
     public MailboxViewModel  MailboxVM  { get; } = new();
@@ -87,4 +87,4 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 }
 
-public record NavItem(string Label, string Icon, string Key);
+public record NavItem(string Label, string PathData, string Key);

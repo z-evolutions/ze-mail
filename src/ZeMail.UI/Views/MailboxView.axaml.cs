@@ -14,6 +14,12 @@ public partial class MailboxView : UserControl
         DataContextChanged += OnDataContextChanged;
     }
 
+    protected override void OnAttachedToVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        LoadMessageBody();
+    }
+
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
         if (DataContext is MailboxViewModel vm)

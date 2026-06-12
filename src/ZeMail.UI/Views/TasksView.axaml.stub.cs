@@ -1,8 +1,8 @@
+﻿// Analyzer-Stub ÔÇô wird zur Laufzeit durch Avalonia-Codegen ersetzt
+#if false
 namespace ZeMail.UI.Views;
-
 public partial class TasksView
 {
-#pragma warning disable CS0109
-    private new void InitializeComponent() { }
-#pragma warning restore CS0109
+    private void InitializeComponent() { }
 }
+#endif

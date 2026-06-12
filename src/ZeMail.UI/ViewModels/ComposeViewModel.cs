@@ -1,5 +1,6 @@
 using System;
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -14,18 +15,101 @@ public partial class ComposeViewModel : ViewModelBase
 {
     public ComposeMode Mode { get; init; } = ComposeMode.New;
 
-    [ObservableProperty] private string _to      = string.Empty;
-    [ObservableProperty] private string _cc      = string.Empty;
-    [ObservableProperty] private string _subject = string.Empty;
-    [ObservableProperty] private string _body    = string.Empty;
-
-    [ObservableProperty] private bool   _isSending = false;
+    [ObservableProperty] private string _to            = string.Empty;
+    [ObservableProperty] private string _cc            = string.Empty;
+    [ObservableProperty] private string _subject       = string.Empty;
+    [ObservableProperty] private string _body          = string.Empty;
+    [ObservableProperty] private bool   _isSending     = false;
     [ObservableProperty] private string _statusMessage = string.Empty;
 
-    public Guid AccountId { get; init; }
+    // ── Account-Auswahl ──────────────────────────────────────────────────────
+    public ObservableCollection<AccountItemViewModel> Accounts { get; } = [];
+
+    [ObservableProperty] private AccountItemViewModel? _selectedAccount;
+
+    public Guid AccountId => SelectedAccount?.Id ?? Guid.Empty;
 
     public event Action? OnSent;
     public event Action? OnCancelled;
+
+    public void Init()
+    {
+        LoadAccounts();
+        ApplySignature();
+    }
+
+    private void LoadAccounts()
+    {
+        if (App.Services is null) return;
+        using var scope = App.Services.CreateScope();
+        var db = scope.ServiceProvider
+                      .GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
+        Accounts.Clear();
+        foreach (var a in db.Accounts.ToList())
+        {
+            Accounts.Add(new AccountItemViewModel
+            {
+                Id           = a.Id,
+                Name         = a.Name,
+                EmailAddress = a.EmailAddress,
+                ImapHost     = a.ImapHost,
+                ImapPort     = a.ImapPort,
+                SmtpHost     = a.SmtpHost,
+                SmtpPort     = a.SmtpPort,
+                Username     = a.Username,
+                Password     = a.Password,
+                Protocol     = a.Protocol,
+            });
+        }
+        SelectedAccount = Accounts.FirstOrDefault();
+    }
+
+    private void ApplySignature()
+    {
+        if (App.Services is null) return;
+        try
+        {
+            using var scope = App.Services.CreateScope();
+            var db       = scope.ServiceProvider
+                                .GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
+            var settings = App.Settings;
+            var isHtml   = settings.ComposeFormat == "HTML";
+            var signatures = db.Signatures.ToList();
+
+            ZeMail.Core.Entities.Signature? sig = Mode switch
+            {
+                ComposeMode.New      => signatures.FirstOrDefault(s => s.UseForNew     && s.IsDefault)
+                                     ?? signatures.FirstOrDefault(s => s.UseForNew),
+                ComposeMode.Reply    => signatures.FirstOrDefault(s => s.UseForReply   && s.IsDefault)
+                                     ?? signatures.FirstOrDefault(s => s.UseForReply),
+                ComposeMode.ReplyAll => signatures.FirstOrDefault(s => s.UseForReply   && s.IsDefault)
+                                     ?? signatures.FirstOrDefault(s => s.UseForReply),
+                ComposeMode.Forward  => signatures.FirstOrDefault(s => s.UseForForward && s.IsDefault)
+                                     ?? signatures.FirstOrDefault(s => s.UseForForward),
+                _                    => signatures.FirstOrDefault(s => s.IsDefault)
+            };
+
+            sig ??= signatures.FirstOrDefault(s => s.IsDefault);
+            if (sig is null) return;
+
+            var sigText = isHtml ? sig.BodyHtml : sig.BodyText;
+            if (string.IsNullOrEmpty(sigText)) return;
+
+            if (isHtml)
+            {
+                Body = string.IsNullOrEmpty(Body)
+                    ? "<br><br><div class=\"ze-signature\">-- <br>" + sigText + "</div>"
+                    : Body + "<br><br><div class=\"ze-signature\">-- <br>" + sigText + "</div>";
+            }
+            else
+            {
+                Body = string.IsNullOrEmpty(Body)
+                    ? "\n\n-- \n" + sigText
+                    : Body + "\n\n-- \n" + sigText;
+            }
+        }
+        catch { }
+    }
 
     [RelayCommand]
     private void Cancel() => OnCancelled?.Invoke();
@@ -36,6 +120,12 @@ public partial class ComposeViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(To))
         {
             StatusMessage = "Bitte Empfänger angeben.";
+            return;
+        }
+
+        if (SelectedAccount is null)
+        {
+            StatusMessage = "Bitte Absender-Konto auswählen.";
             return;
         }
 
@@ -51,33 +141,28 @@ public partial class ComposeViewModel : ViewModelBase
             var smtp = scope.ServiceProvider
                             .GetRequiredService<ZeMail.Core.Interfaces.ISmtpSenderService>();
 
-            var toList = new List<string>();
-            foreach (var addr in To.Split(',', ';'))
-            {
-                var trimmed = addr.Trim();
-                if (!string.IsNullOrEmpty(trimmed))
-                    toList.Add(trimmed);
-            }
+            var toList = To.Split(',', ';')
+                           .Select(a => a.Trim())
+                           .Where(a => !string.IsNullOrEmpty(a))
+                           .ToList();
 
-            var ccList = new List<string>();
-            foreach (var addr in Cc.Split(',', ';'))
-            {
-                var trimmed = addr.Trim();
-                if (!string.IsNullOrEmpty(trimmed))
-                    ccList.Add(trimmed);
-            }
+            var ccList = Cc.Split(',', ';')
+                           .Select(a => a.Trim())
+                           .Where(a => !string.IsNullOrEmpty(a))
+                           .ToList();
 
+            var settings = App.Settings;
             var outgoing = new OutgoingMessage
             {
-                AccountId = AccountId,
+                AccountId = SelectedAccount.Id,
                 To        = toList,
                 Cc        = ccList,
                 Subject   = Subject,
-                BodyText  = Body,
+                BodyText  = settings.ComposeFormat == "HTML" ? null : Body,
+                BodyHtml  = settings.ComposeFormat == "HTML" ? Body  : null,
             };
 
             await smtp.SendAsync(outgoing);
-
             StatusMessage = "✓ Gesendet!";
             await Task.Delay(800);
             OnSent?.Invoke();

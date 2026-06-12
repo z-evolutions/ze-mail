@@ -8,12 +8,14 @@
     <Grid ColumnDefinitions="220,320,*">
 
         <!-- ── Spalte 1: Ordnerbaum ── -->
-        <Border Grid.Column="0" Background="#12122a"
-                BorderThickness="0,0,1,0" BorderBrush="#2a2a4a">
+        <Border Grid.Column="0"
+                Background="{DynamicResource ZeSurfaceBrush}"
+                BorderThickness="0,0,1,0"
+                BorderBrush="{DynamicResource ZeBorderBrush}">
             <DockPanel>
                 <TextBlock DockPanel.Dock="Top"
                            Text="ORDNER"
-                           Foreground="#6060a0"
+                           Foreground="{DynamicResource ZeTextSecondaryBrush}"
                            FontSize="11" FontWeight="Bold"
                            Margin="12,16,12,8"/>
                 <ListBox ItemsSource="{Binding Folders}"
@@ -24,20 +26,23 @@
                             <Panel>
                                 <TextBlock Text="{Binding AccountName}"
                                            IsVisible="{Binding IsAccountHeader}"
-                                           Foreground="#5050a0" FontSize="10"
-                                           FontWeight="Bold" Margin="8,12,4,2"/>
+                                           Foreground="{DynamicResource ZeAccentBrush}"
+                                           FontSize="10" FontWeight="Bold"
+                                           Margin="8,12,4,2"/>
                                 <StackPanel Orientation="Horizontal" Spacing="8"
                                             Margin="12,2,4,2"
                                             IsVisible="{Binding !IsAccountHeader}">
                                     <TextBlock Text="{Binding Icon}" FontSize="14"/>
-                                    <TextBlock Text="{Binding Name}" Foreground="#c0c0e0" FontSize="13"/>
+                                    <TextBlock Text="{Binding Name}"
+                                               Foreground="{DynamicResource ZeTextPrimaryBrush}"
+                                               FontSize="13"/>
                                 </StackPanel>
                             </Panel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                     <ListBox.Styles>
                         <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
-                            <Setter Property="Background" Value="#1e1e4a"/>
+                            <Setter Property="Background" Value="{DynamicResource ZeSelectedBrush}"/>
                         </Style>
                     </ListBox.Styles>
                 </ListBox>
@@ -45,17 +50,19 @@
         </Border>
 
         <!-- ── Spalte 2: Nachrichtenliste ── -->
-        <Border Grid.Column="1" Background="#0f0f23"
-                BorderThickness="0,0,1,0" BorderBrush="#2a2a4a">
+        <Border Grid.Column="1"
+                Background="{DynamicResource ZeBackgroundBrush}"
+                BorderThickness="0,0,1,0"
+                BorderBrush="{DynamicResource ZeBorderBrush}">
             <ListBox ItemsSource="{Binding Messages}"
                      SelectedItem="{Binding SelectedMessage}"
                      Background="Transparent">
                 <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="m:MessageViewModel">
-                        <Border Padding="10,8" BorderThickness="0,0,0,1" BorderBrush="#1a1a3a">
+                        <Border Padding="10,8"
+                                BorderThickness="0,0,0,1"
+                                BorderBrush="{DynamicResource ZeBorderBrush}">
                             <Grid ColumnDefinitions="44,*">
-
-                                <!-- Avatar -->
                                 <Border Grid.Column="0"
                                         Width="36" Height="36"
                                         CornerRadius="18"
@@ -65,23 +72,24 @@
                                            Width="36" Height="36"
                                            Stretch="UniformToFill"/>
                                 </Border>
-
-                                <!-- Text -->
                                 <Grid Grid.Column="1" RowDefinitions="Auto,Auto">
                                     <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
                                         <TextBlock Grid.Column="0"
                                                    Text="{Binding SenderDisplay}"
                                                    FontWeight="SemiBold"
-                                                   Foreground="#e0e0ff" FontSize="13"
+                                                   Foreground="{DynamicResource ZeTextPrimaryBrush}"
+                                                   FontSize="13"
                                                    TextTrimming="CharacterEllipsis"/>
                                         <TextBlock Grid.Column="1"
                                                    Text="{Binding DisplayDate}"
-                                                   Foreground="#6060a0" FontSize="11"
+                                                   Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                                                   FontSize="11"
                                                    Margin="8,0,0,0"/>
                                     </Grid>
                                     <TextBlock Grid.Row="1"
                                                Text="{Binding Subject}"
-                                               Foreground="#a0a0c0" FontSize="12"
+                                               Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                                               FontSize="12"
                                                TextTrimming="CharacterEllipsis"
                                                Margin="0,2,0,0"/>
                                 </Grid>
@@ -91,32 +99,30 @@
                 </ListBox.ItemTemplate>
                 <ListBox.Styles>
                     <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
-                        <Setter Property="Background" Value="#1e1e4a"/>
+                        <Setter Property="Background" Value="{DynamicResource ZeSelectedBrush}"/>
                     </Style>
                 </ListBox.Styles>
             </ListBox>
         </Border>
 
         <!-- ── Spalte 3: Lesebereich ── -->
-        <Grid Grid.Column="2" RowDefinitions="Auto,*" Background="#0a0a1a">
+        <Grid Grid.Column="2" RowDefinitions="Auto,*"
+              Background="{DynamicResource ZeSurfaceBrush}">
 
-            <!-- Header -->
             <Border Grid.Row="0" Padding="16,12"
-                    BorderThickness="0,0,0,1" BorderBrush="#1a1a3a"
+                    BorderThickness="0,0,0,1"
+                    BorderBrush="{DynamicResource ZeBorderBrush}"
                     IsVisible="{Binding SelectedMessage, Converter={x:Static ObjectConverters.IsNotNull}}">
                 <Grid RowDefinitions="Auto,Auto,Auto">
 
-                    <!-- Betreff -->
                     <TextBlock Grid.Row="0"
                                Text="{Binding SelectedMessage.Subject}"
                                FontSize="18" FontWeight="Bold"
-                               Foreground="#e0e0ff" TextWrapping="Wrap"
+                               Foreground="{DynamicResource ZeTextPrimaryBrush}"
+                               TextWrapping="Wrap"
                                Margin="0,0,0,8"/>
 
-                    <!-- Avatar + Absender + Datum -->
                     <Grid Grid.Row="1" ColumnDefinitions="52,*,Auto" Margin="0,0,0,10">
-
-                        <!-- Avatar -->
                         <Border Grid.Column="0"
                                 Width="40" Height="40"
                                 CornerRadius="20"
@@ -126,42 +132,42 @@
                                    Width="40" Height="40"
                                    Stretch="UniformToFill"/>
                         </Border>
-
-                        <!-- Name + Adresse -->
                         <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
                             <TextBlock Text="{Binding SelectedMessage.SenderDisplay}"
-                                       Foreground="#c0c0ff" FontWeight="SemiBold" FontSize="13"/>
+                                       Foreground="{DynamicResource ZeAccentBrush}"
+                                       FontWeight="SemiBold" FontSize="13"/>
                             <TextBlock Text="{Binding SelectedMessage.FromAddress}"
-                                       Foreground="#6060a0" FontSize="11"/>
+                                       Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                                       FontSize="11"/>
                         </StackPanel>
-
-                        <!-- Datum -->
                         <TextBlock Grid.Column="2"
                                    Text="{Binding SelectedMessage.DisplayDate}"
-                                   Foreground="#6060a0" FontSize="12"
+                                   Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                                   FontSize="12"
                                    VerticalAlignment="Center"/>
                     </Grid>
 
-                    <!-- Aktions-Buttons -->
                     <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
                         <Button Content="↩ Antworten"
                                 Command="{Binding ReplyCommand}"
-                                Background="#1a1a4a" Foreground="#c0c0ff"
+                                Background="{DynamicResource ZeSurfaceAltBrush}"
+                                Foreground="{DynamicResource ZeAccentBrush}"
                                 CornerRadius="6" Padding="10,6" FontSize="12"/>
                         <Button Content="↩↩ Allen antworten"
                                 Command="{Binding ReplyAllCommand}"
-                                Background="#1a1a4a" Foreground="#c0c0ff"
+                                Background="{DynamicResource ZeSurfaceAltBrush}"
+                                Foreground="{DynamicResource ZeAccentBrush}"
                                 CornerRadius="6" Padding="10,6" FontSize="12"/>
                         <Button Content="→ Weiterleiten"
                                 Command="{Binding ForwardCommand}"
-                                Background="#1a1a4a" Foreground="#c0c0ff"
+                                Background="{DynamicResource ZeSurfaceAltBrush}"
+                                Foreground="{DynamicResource ZeAccentBrush}"
                                 CornerRadius="6" Padding="10,6" FontSize="12"/>
                     </StackPanel>
 
                 </Grid>
             </Border>
 
-            <!-- NativeWebView Body -->
             <NativeWebView Grid.Row="1"
                            x:Name="MailBodyWebView"
                            IsVisible="{Binding SelectedMessage, Converter={x:Static ObjectConverters.IsNotNull}}"/>

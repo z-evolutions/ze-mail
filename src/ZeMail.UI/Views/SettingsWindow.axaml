@@ -5,151 +5,538 @@
         x:DataType="vm:SettingsViewModel"
         Title="Einstellungen"
         Icon="/Assets/zemail.ico"
-        Width="900" Height="620"
-        MinWidth="700" MinHeight="500"
+        WindowState="Maximized"
+        MinWidth="800" MinHeight="500"
         WindowStartupLocation="CenterOwner"
-        Background="#0f0f23">
+        Background="{DynamicResource ZeBackgroundBrush}">
 
     <Grid ColumnDefinitions="200,*" RowDefinitions="*,Auto">
 
-        <!-- ── Linke Spalte: Account-Liste ── -->
+        <!-- ── Linke Sidebar ── -->
         <Border Grid.Column="0" Grid.Row="0"
-                Background="#0a0a1a"
-                BorderThickness="0,0,1,0" BorderBrush="#2a2a4a">
+                Background="{DynamicResource ZeSurfaceBrush}"
+                BorderThickness="0,0,1,0"
+                BorderBrush="{DynamicResource ZeBorderBrush}">
             <DockPanel>
                 <TextBlock DockPanel.Dock="Top"
-                           Text="KONTEN"
-                           Foreground="#6060a0"
+                           Text="EINSTELLUNGEN"
+                           Foreground="{DynamicResource ZeTextSecondaryBrush}"
                            FontSize="11" FontWeight="Bold"
-                           Margin="12,16,12,8"/>
-
-                <Button DockPanel.Dock="Bottom"
-                        Content="+ Konto hinzufügen"
-                        Command="{Binding AddAccountCommand}"
-                        Background="#3a3aff"
-                        Foreground="White"
-                        CornerRadius="0"
-                        Padding="12,10"
-                        HorizontalAlignment="Stretch"
-                        HorizontalContentAlignment="Center"/>
-
-                <ListBox ItemsSource="{Binding Accounts}"
-                         SelectedItem="{Binding SelectedAccount}"
-                         Background="Transparent">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate x:DataType="vm:AccountItemViewModel">
-                            <StackPanel Spacing="2" Margin="4,4">
-                                <TextBlock Text="{Binding Name}"
-                                           Foreground="#e0e0ff"
-                                           FontSize="13" FontWeight="SemiBold"/>
-                                <TextBlock Text="{Binding EmailAddress}"
-                                           Foreground="#6060a0"
-                                           FontSize="11"/>
-                            </StackPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+                           Margin="12,16,12,12"/>
+                <StackPanel Margin="8,0">
+                    <Button Command="{Binding NavigateCommand}" CommandParameter="Konten"
+                            Background="Transparent" BorderThickness="0"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,9">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <PathIcon Width="15" Height="15" Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                                      Data="M20,8L12,13L4,8V6L12,11L20,6M20,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.1,4 20,4Z"/>
+                            <TextBlock Text="Konten" Foreground="{DynamicResource ZeTextPrimaryBrush}" FontSize="13" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding NavigateCommand}" CommandParameter="Allgemein"
+                            Background="Transparent" BorderThickness="0"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,9">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <PathIcon Width="15" Height="15" Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                                      Data="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.68 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/>
+                            <TextBlock Text="Allgemein" Foreground="{DynamicResource ZeTextPrimaryBrush}" FontSize="13" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding NavigateCommand}" CommandParameter="Verfassen"
+                            Background="Transparent" BorderThickness="0"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,9">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <PathIcon Width="15" Height="15" Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                                      Data="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/>
+                            <TextBlock Text="Verfassen" Foreground="{DynamicResource ZeTextPrimaryBrush}" FontSize="13" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding NavigateCommand}" CommandParameter="Signaturen"
+                            Background="Transparent" BorderThickness="0"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,9">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <PathIcon Width="15" Height="15" Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                                      Data="M17,12H7V10H17M14,16H7V14H14M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3Z"/>
+                            <TextBlock Text="Signaturen" Foreground="{DynamicResource ZeTextPrimaryBrush}" FontSize="13" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding NavigateCommand}" CommandParameter="Kalender"
+                            Background="Transparent" BorderThickness="0"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,9">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <PathIcon Width="15" Height="15" Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                                      Data="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,13H12V18H17V13Z"/>
+                            <TextBlock Text="Kalender" Foreground="{DynamicResource ZeTextPrimaryBrush}" FontSize="13" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding NavigateCommand}" CommandParameter="MeineKalender"
+                            Background="Transparent" BorderThickness="0"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,9">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <PathIcon Width="15" Height="15" Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                                      Data="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1"/>
+                            <TextBlock Text="Meine Kalender" Foreground="{DynamicResource ZeTextPrimaryBrush}" FontSize="13" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding NavigateCommand}" CommandParameter="Benachrichtigungen"
+                            Background="Transparent" BorderThickness="0"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="10,9">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <PathIcon Width="15" Height="15" Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                                      Data="M21,19V20H3V19L5,17V11C5,7.9 7.03,5.17 10,4.29C10,4.19 10,4.1 10,4A2,2 0 0,1 12,2A2,2 0 0,1 14,4C14,4.1 14,4.19 14,4.29C16.97,5.17 19,7.9 19,11V17L21,19M14,21A2,2 0 0,1 12,23A2,2 0 0,1 10,21"/>
+                            <TextBlock Text="Benachrichtigungen" Foreground="{DynamicResource ZeTextPrimaryBrush}" FontSize="13" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
             </DockPanel>
         </Border>
 
-        <!-- ── Rechte Spalte: Edit-Bereich ── -->
-        <ScrollViewer Grid.Column="1" Grid.Row="0" Padding="20">
-            <StackPanel Spacing="12"
-                        IsVisible="{Binding HasSelection}">
+        <!-- ── Rechter Inhaltsbereich ── -->
+        <ScrollViewer Grid.Column="1" Grid.Row="0" Padding="24,20">
+            <Panel>
 
-                <TextBlock Text="Konto bearbeiten"
-                           Foreground="#7070ff"
-                           FontSize="16" FontWeight="Bold"
-                           Margin="0,0,0,8"/>
+                <!-- KONTEN -->
+                <Grid IsVisible="{Binding IsKonten}">
+                    <Grid ColumnDefinitions="180,*">
+                        <DockPanel Grid.Column="0">
+                            <TextBlock DockPanel.Dock="Top" Text="KONTEN"
+                                       Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                                       FontSize="11" FontWeight="Bold" Margin="0,0,0,8"/>
+                            <Button DockPanel.Dock="Bottom"
+                                    Content="+ Konto hinzufügen"
+                                    Command="{Binding AddAccountCommand}"
+                                    Background="{DynamicResource ZeAccentBrush}"
+                                    Foreground="{DynamicResource ZeBackgroundBrush}"
+                                    CornerRadius="6" Padding="10,7" Margin="0,8,8,0"
+                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                            <ListBox ItemsSource="{Binding Accounts}"
+                                     SelectedItem="{Binding SelectedAccount}"
+                                     Background="Transparent" Margin="0,0,8,0">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:AccountItemViewModel">
+                                        <StackPanel Spacing="2" Margin="4,4">
+                                            <TextBlock Text="{Binding Name}"
+                                                       Foreground="{DynamicResource ZeTextPrimaryBrush}"
+                                                       FontSize="13" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding EmailAddress}"
+                                                       Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                                                       FontSize="11"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
+                        <StackPanel Grid.Column="1" Spacing="12" IsVisible="{Binding HasSelection}">
+                            <TextBlock Text="Konto bearbeiten"
+                                       Foreground="{DynamicResource ZeAccentBrush}"
+                                       FontSize="16" FontWeight="Bold" Margin="0,0,0,4"/>
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Anzeigename" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="12"/>
+                                <TextBox Text="{Binding EditName}" CornerRadius="6" Padding="10,6"/>
+                            </StackPanel>
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="E-Mail-Adresse" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="12"/>
+                                <TextBox Text="{Binding EditEmail}" CornerRadius="6" Padding="10,6"/>
+                            </StackPanel>
+                            <Grid ColumnDefinitions="*,90">
+                                <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,8,0">
+                                    <TextBlock Text="IMAP-Server" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="12"/>
+                                    <TextBox Text="{Binding EditImapHost}" CornerRadius="6" Padding="10,6"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Spacing="4">
+                                    <TextBlock Text="Port" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="12"/>
+                                    <TextBox Text="{Binding EditImapPort}" CornerRadius="6" Padding="10,6"/>
+                                </StackPanel>
+                            </Grid>
+                            <Grid ColumnDefinitions="*,90">
+                                <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,8,0">
+                                    <TextBlock Text="SMTP-Server" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="12"/>
+                                    <TextBox Text="{Binding EditSmtpHost}" CornerRadius="6" Padding="10,6"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Spacing="4">
+                                    <TextBlock Text="Port" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="12"/>
+                                    <TextBox Text="{Binding EditSmtpPort}" CornerRadius="6" Padding="10,6"/>
+                                </StackPanel>
+                            </Grid>
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Benutzername" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="12"/>
+                                <TextBox Text="{Binding EditUsername}" CornerRadius="6" Padding="10,6"/>
+                            </StackPanel>
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Passwort" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="12"/>
+                                <TextBox Text="{Binding EditPassword}" PasswordChar="●" CornerRadius="6" Padding="10,6"/>
+                            </StackPanel>
+                            <CheckBox Content="Im einheitlichen Posteingang anzeigen"
+                                      IsChecked="{Binding EditUnifiedInbox}"
+                                      Foreground="{DynamicResource ZeTextPrimaryBrush}"/>
+                            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                                <Button Content="Speichern" Command="{Binding SaveAccountCommand}"
+                                        Background="{DynamicResource ZeAccentBrush}"
+                                        Foreground="{DynamicResource ZeBackgroundBrush}"
+                                        CornerRadius="6" Padding="14,8"/>
+                                <Button Content="Konto löschen" Command="{Binding DeleteAccountCommand}"
+                                        Background="{DynamicResource ZeDangerBrush}"
+                                        Foreground="{DynamicResource ZeDangerTextBrush}"
+                                        CornerRadius="6" Padding="14,8"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding StatusMessage}"
+                                       Foreground="{DynamicResource ZeAccentBrush}" FontSize="12"/>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
 
-                <!-- Name -->
-                <StackPanel Spacing="4">
-                    <TextBlock Text="Anzeigename" Foreground="#8080a0" FontSize="12"/>
-                    <TextBox Text="{Binding EditName}" CornerRadius="6" Padding="10,6"/>
+                <!-- ALLGEMEIN -->
+                <StackPanel IsVisible="{Binding IsAllgemein}" Spacing="20">
+                    <TextBlock Text="Allgemein" Foreground="{DynamicResource ZeAccentBrush}" FontSize="16" FontWeight="Bold"/>
+                    <Border Background="{DynamicResource ZeSurfaceBrush}" CornerRadius="8" Padding="16">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="ERSCHEINUNGSBILD" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="11" FontWeight="Bold"/>
+                            <Grid ColumnDefinitions="160,*">
+                                <TextBlock Grid.Column="0" Text="Theme"
+                                           Foreground="{DynamicResource ZeTextPrimaryBrush}" FontSize="13" VerticalAlignment="Center"/>
+                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding IsDarkTheme}"
+                                              OnContent="Dark Mode" OffContent="Light Mode"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                    <Button Content="Speichern" Command="{Binding SaveAllgemeinCommand}"
+                            Background="{DynamicResource ZeAccentBrush}"
+                            Foreground="{DynamicResource ZeBackgroundBrush}"
+                            CornerRadius="6" Padding="14,8"/>
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource ZeAccentBrush}" FontSize="12"/>
                 </StackPanel>
 
-                <!-- E-Mail -->
-                <StackPanel Spacing="4">
-                    <TextBlock Text="E-Mail-Adresse" Foreground="#8080a0" FontSize="12"/>
-                    <TextBox Text="{Binding EditEmail}" CornerRadius="6" Padding="10,6"/>
+                <!-- VERFASSEN -->
+                <StackPanel IsVisible="{Binding IsVerfassen}" Spacing="20">
+                    <TextBlock Text="Verfassen" Foreground="{DynamicResource ZeAccentBrush}" FontSize="16" FontWeight="Bold"/>
+                    <Border Background="{DynamicResource ZeSurfaceBrush}" CornerRadius="8" Padding="16">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="FORMAT" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="11" FontWeight="Bold"/>
+                            <Grid ColumnDefinitions="160,*">
+                                <TextBlock Grid.Column="0" Text="Nachrichtenformat"
+                                           Foreground="{DynamicResource ZeTextPrimaryBrush}" FontSize="13" VerticalAlignment="Center"/>
+                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding ComposeHtml}"
+                                              OnContent="HTML" OffContent="Nur Text"/>
+                            </Grid>
+                            <TextBlock Text="ANTWORTEN" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="11" FontWeight="Bold" Margin="0,8,0,0"/>
+                            <Grid ColumnDefinitions="160,*">
+                                <TextBlock Grid.Column="0" Text="Zitat-Stil"
+                                           Foreground="{DynamicResource ZeTextPrimaryBrush}" FontSize="13" VerticalAlignment="Center"/>
+                                <ComboBox Grid.Column="1" SelectedItem="{Binding QuoteStyle}"
+                                          Width="160" HorizontalAlignment="Left">
+                                    <ComboBoxItem>Above</ComboBoxItem>
+                                    <ComboBoxItem>Below</ComboBoxItem>
+                                </ComboBox>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="{DynamicResource ZeSurfaceBrush}" CornerRadius="8" Padding="16">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="SIGNATUR" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="11" FontWeight="Bold"/>
+                            <TextBlock Text="Standard-Signatur für neue Mails"
+                                       Foreground="{DynamicResource ZeTextPrimaryBrush}" FontSize="13"/>
+                            <ComboBox ItemsSource="{Binding Signatures}"
+                                      SelectedItem="{Binding SelectedSignature}"
+                                      HorizontalAlignment="Stretch">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:SignatureItemViewModel">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="{Binding Name}" Foreground="{DynamicResource ZeTextPrimaryBrush}" FontSize="13"/>
+                                            <TextBlock Text="(Standard)" Foreground="{DynamicResource ZeSuccessBrush}" FontSize="11"
+                                                       VerticalAlignment="Center" IsVisible="{Binding IsDefault}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+                    </Border>
+                    <Button Content="Speichern" Command="{Binding SaveVerfassenCommand}"
+                            Background="{DynamicResource ZeAccentBrush}"
+                            Foreground="{DynamicResource ZeBackgroundBrush}"
+                            CornerRadius="6" Padding="14,8"/>
+                    <TextBlock Text="{Binding VerfassenStatus}" Foreground="{DynamicResource ZeAccentBrush}" FontSize="12"/>
                 </StackPanel>
 
-                <!-- IMAP -->
-                <Grid ColumnDefinitions="*,100" Margin="0,4,0,0">
-                    <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,8,0">
-                        <TextBlock Text="IMAP-Server" Foreground="#8080a0" FontSize="12"/>
-                        <TextBox Text="{Binding EditImapHost}" CornerRadius="6" Padding="10,6"/>
-                    </StackPanel>
-                    <StackPanel Grid.Column="1" Spacing="4">
-                        <TextBlock Text="Port" Foreground="#8080a0" FontSize="12"/>
-                        <TextBox Text="{Binding EditImapPort}" CornerRadius="6" Padding="10,6"/>
+                <!-- SIGNATUREN -->
+                <Grid IsVisible="{Binding IsSignaturen}" ColumnDefinitions="220,*">
+                    <DockPanel Grid.Column="0" Margin="0,0,16,0">
+                        <TextBlock DockPanel.Dock="Top" Text="SIGNATUREN"
+                                   Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                                   FontSize="11" FontWeight="Bold" Margin="0,0,0,8"/>
+                        <Button DockPanel.Dock="Bottom"
+                                Content="+ Neue Signatur"
+                                Command="{Binding NewSignatureCommand}"
+                                Background="{DynamicResource ZeAccentBrush}"
+                                Foreground="{DynamicResource ZeBackgroundBrush}"
+                                CornerRadius="6" Padding="10,7" Margin="0,8,0,0"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                        <ListBox ItemsSource="{Binding AllSignatures}"
+                                 SelectedItem="{Binding SelectedSignatureForEdit}"
+                                 Background="Transparent">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:SignatureItemViewModel">
+                                    <Grid ColumnDefinitions="*,Auto" Margin="4,4">
+                                        <StackPanel Grid.Column="0" Spacing="2">
+                                            <TextBlock Text="{Binding Name}"
+                                                       Foreground="{DynamicResource ZeTextPrimaryBrush}"
+                                                       FontSize="13" FontWeight="SemiBold"/>
+                                            <TextBlock Text="Standard"
+                                                       Foreground="{DynamicResource ZeSuccessBrush}"
+                                                       FontSize="11" IsVisible="{Binding IsDefault}"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1"
+                                                Command="{Binding $parent[ListBox].DataContext.DeleteSignatureCommand}"
+                                                CommandParameter="{Binding}"
+                                                Background="Transparent" BorderThickness="0"
+                                                ToolTip.Tip="Löschen">
+                                            <PathIcon Width="13" Height="13"
+                                                      Foreground="{DynamicResource ZeDangerTextBrush}"
+                                                      Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/>
+                                        </Button>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+
+                    <StackPanel Grid.Column="1" Spacing="12" IsVisible="{Binding IsEditingSignature}">
+                        <TextBlock Text="Signatur bearbeiten"
+                                   Foreground="{DynamicResource ZeAccentBrush}"
+                                   FontSize="16" FontWeight="Bold"/>
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Name" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="12"/>
+                            <TextBox Text="{Binding Editor.Name}" CornerRadius="6" Padding="10,6"/>
+                        </StackPanel>
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Konto" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="12"/>
+                            <ComboBox ItemsSource="{Binding Accounts}" HorizontalAlignment="Stretch">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:AccountItemViewModel">
+                                        <TextBlock Text="{Binding Name}"
+                                                   Foreground="{DynamicResource ZeTextPrimaryBrush}" FontSize="13"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="HTML-Inhalt" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="12"/>
+                            <Border Background="{DynamicResource ZeSurfaceInputBrush}"
+                                    BorderBrush="{DynamicResource ZeBorderBrush}"
+                                    BorderThickness="1" CornerRadius="6">
+                                <TextBox Text="{Binding Editor.BodyHtml}"
+                                         AcceptsReturn="True" TextWrapping="Wrap"
+                                         MinHeight="160" MaxHeight="300"
+                                         FontFamily="Consolas,Courier New,monospace"
+                                         FontSize="12"
+                                         BorderThickness="0" CornerRadius="6" Padding="10"/>
+                            </Border>
+                        </StackPanel>
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Nur-Text-Inhalt (Fallback)" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="12"/>
+                            <Border Background="{DynamicResource ZeSurfaceInputBrush}"
+                                    BorderBrush="{DynamicResource ZeBorderBrush}"
+                                    BorderThickness="1" CornerRadius="6">
+                                <TextBox Text="{Binding Editor.BodyText}"
+                                         AcceptsReturn="True" TextWrapping="Wrap"
+                                         MinHeight="80" MaxHeight="160"
+                                         FontSize="12"
+                                         BorderThickness="0" CornerRadius="6" Padding="10"/>
+                            </Border>
+                        </StackPanel>
+                        <Border Background="{DynamicResource ZeSurfaceBrush}" CornerRadius="8" Padding="12">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="VERWENDEN BEI"
+                                           Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                                           FontSize="11" FontWeight="Bold"/>
+                                <CheckBox Content="Neue Nachricht" IsChecked="{Binding Editor.UseForNew}"
+                                          Foreground="{DynamicResource ZeTextPrimaryBrush}"/>
+                                <CheckBox Content="Antworten" IsChecked="{Binding Editor.UseForReply}"
+                                          Foreground="{DynamicResource ZeTextPrimaryBrush}"/>
+                                <CheckBox Content="Weiterleiten" IsChecked="{Binding Editor.UseForForward}"
+                                          Foreground="{DynamicResource ZeTextPrimaryBrush}"/>
+                                <CheckBox Content="Als Standard-Signatur" IsChecked="{Binding Editor.IsDefault}"
+                                          Foreground="{DynamicResource ZeTextPrimaryBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Content="Speichern" Command="{Binding SaveSignatureCommand}"
+                                    Background="{DynamicResource ZeAccentBrush}"
+                                    Foreground="{DynamicResource ZeBackgroundBrush}"
+                                    CornerRadius="6" Padding="14,8"/>
+                            <Button Content="Abbrechen" Command="{Binding CancelSignatureEditCommand}"
+                                    Background="{DynamicResource ZeSurfaceAltBrush}"
+                                    Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                                    CornerRadius="6" Padding="14,8"/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding SignaturenStatus}"
+                                   Foreground="{DynamicResource ZeAccentBrush}" FontSize="12"/>
                     </StackPanel>
                 </Grid>
 
-                <!-- SMTP -->
-                <Grid ColumnDefinitions="*,100">
-                    <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,8,0">
-                        <TextBlock Text="SMTP-Server" Foreground="#8080a0" FontSize="12"/>
-                        <TextBox Text="{Binding EditSmtpHost}" CornerRadius="6" Padding="10,6"/>
-                    </StackPanel>
-                    <StackPanel Grid.Column="1" Spacing="4">
-                        <TextBlock Text="Port" Foreground="#8080a0" FontSize="12"/>
-                        <TextBox Text="{Binding EditSmtpPort}" CornerRadius="6" Padding="10,6"/>
-                    </StackPanel>
-                </Grid>
-
-                <!-- Benutzername -->
-                <StackPanel Spacing="4">
-                    <TextBlock Text="Benutzername" Foreground="#8080a0" FontSize="12"/>
-                    <TextBox Text="{Binding EditUsername}" CornerRadius="6" Padding="10,6"/>
+                <!-- KALENDER -->
+                <StackPanel IsVisible="{Binding IsKalender}" Spacing="20">
+                    <TextBlock Text="Kalender" Foreground="{DynamicResource ZeAccentBrush}" FontSize="16" FontWeight="Bold"/>
+                    <Border Background="{DynamicResource ZeSurfaceBrush}" CornerRadius="8" Padding="16">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="TERMINE" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="11" FontWeight="Bold"/>
+                            <Grid ColumnDefinitions="160,*">
+                                <TextBlock Grid.Column="0" Text="Standarddauer (Min.)"
+                                           Foreground="{DynamicResource ZeTextPrimaryBrush}" FontSize="13" VerticalAlignment="Center"/>
+                                <TextBox Grid.Column="1" Text="{Binding DefaultEventDuration}"
+                                         Width="80" HorizontalAlignment="Left" CornerRadius="6" Padding="10,6"/>
+                            </Grid>
+                            <TextBlock Text="ARBEITSWOCHE" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="11" FontWeight="Bold" Margin="0,8,0,0"/>
+                            <Grid ColumnDefinitions="160,*">
+                                <TextBlock Grid.Column="0" Text="Arbeitsbeginn"
+                                           Foreground="{DynamicResource ZeTextPrimaryBrush}" FontSize="13" VerticalAlignment="Center"/>
+                                <TextBox Grid.Column="1" Text="{Binding WorkDayStartHour}"
+                                         Width="80" HorizontalAlignment="Left" CornerRadius="6" Padding="10,6"/>
+                            </Grid>
+                            <Grid ColumnDefinitions="160,*">
+                                <TextBlock Grid.Column="0" Text="Arbeitsende"
+                                           Foreground="{DynamicResource ZeTextPrimaryBrush}" FontSize="13" VerticalAlignment="Center"/>
+                                <TextBox Grid.Column="1" Text="{Binding WorkDayEndHour}"
+                                         Width="80" HorizontalAlignment="Left" CornerRadius="6" Padding="10,6"/>
+                            </Grid>
+                            <Grid ColumnDefinitions="160,*">
+                                <TextBlock Grid.Column="0" Text="Erster Wochentag"
+                                           Foreground="{DynamicResource ZeTextPrimaryBrush}" FontSize="13" VerticalAlignment="Center"/>
+                                <ComboBox Grid.Column="1" SelectedIndex="{Binding FirstDayOfWeek}"
+                                          Width="140" HorizontalAlignment="Left">
+                                    <ComboBoxItem>Sonntag</ComboBoxItem>
+                                    <ComboBoxItem>Montag</ComboBoxItem>
+                                </ComboBox>
+                            </Grid>
+                            <Grid ColumnDefinitions="160,*">
+                                <TextBlock Grid.Column="0" Text="Wochenenden anzeigen"
+                                           Foreground="{DynamicResource ZeTextPrimaryBrush}" FontSize="13" VerticalAlignment="Center"/>
+                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding ShowWeekends}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                    <Button Content="Speichern" Command="{Binding SaveKalenderCommand}"
+                            Background="{DynamicResource ZeAccentBrush}"
+                            Foreground="{DynamicResource ZeBackgroundBrush}"
+                            CornerRadius="6" Padding="14,8"/>
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource ZeAccentBrush}" FontSize="12"/>
                 </StackPanel>
 
-                <!-- Passwort -->
-                <StackPanel Spacing="4">
-                    <TextBlock Text="Passwort" Foreground="#8080a0" FontSize="12"/>
-                    <TextBox Text="{Binding EditPassword}"
-                             PasswordChar="●"
-                             CornerRadius="6" Padding="10,6"/>
+                <!-- MEINE KALENDER -->
+                <StackPanel IsVisible="{Binding IsMeineKalender}" Spacing="20">
+                    <TextBlock Text="Meine Kalender" Foreground="{DynamicResource ZeAccentBrush}" FontSize="16" FontWeight="Bold"/>
+                    <ItemsControl ItemsSource="{Binding Calendars}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:CalendarItemViewModel">
+                                <Border Background="{DynamicResource ZeSurfaceBrush}"
+                                        CornerRadius="8" Padding="12,10" Margin="0,0,0,6">
+                                    <Grid ColumnDefinitions="16,*,Auto,Auto">
+                                        <Border Grid.Column="0" Width="14" Height="14"
+                                                CornerRadius="7" Background="{Binding Color}"
+                                                VerticalAlignment="Center"/>
+                                        <StackPanel Grid.Column="1" Margin="10,0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Name}"
+                                                       Foreground="{DynamicResource ZeTextPrimaryBrush}"
+                                                       FontSize="13" FontWeight="SemiBold"/>
+                                            <TextBlock Text="Standard"
+                                                       Foreground="{DynamicResource ZeSuccessBrush}"
+                                                       FontSize="11" IsVisible="{Binding IsDefault}"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="2"
+                                                Command="{Binding $parent[ItemsControl].DataContext.SetDefaultCalendarCommand}"
+                                                CommandParameter="{Binding}"
+                                                Background="Transparent" BorderThickness="0"
+                                                ToolTip.Tip="Als Standard setzen" Margin="0,0,4,0">
+                                            <PathIcon Width="14" Height="14"
+                                                      Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                                                      Data="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/>
+                                        </Button>
+                                        <Button Grid.Column="3"
+                                                Command="{Binding $parent[ItemsControl].DataContext.DeleteCalendarCommand}"
+                                                CommandParameter="{Binding}"
+                                                Background="Transparent" BorderThickness="0"
+                                                ToolTip.Tip="Löschen">
+                                            <PathIcon Width="14" Height="14"
+                                                      Foreground="{DynamicResource ZeDangerTextBrush}"
+                                                      Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/>
+                                        </Button>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Border Background="{DynamicResource ZeSurfaceBrush}" CornerRadius="8" Padding="12">
+                        <StackPanel>
+                            <Button IsVisible="{Binding !IsAddingCalendar}"
+                                    Command="{Binding BeginAddCalendarCommand}"
+                                    Background="Transparent" BorderThickness="0"
+                                    HorizontalAlignment="Left" Padding="0">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="+" Foreground="{DynamicResource ZeAccentBrush}" FontSize="18" FontWeight="Bold"/>
+                                    <TextBlock Text="Neuen Kalender anlegen"
+                                               Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                                               FontSize="13" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <StackPanel IsVisible="{Binding IsAddingCalendar}" Spacing="10">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Name" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="12"/>
+                                    <TextBox Text="{Binding NewCalendarName}" PlaceholderText="Kalendername…"
+                                             CornerRadius="6" Padding="10,6"/>
+                                </StackPanel>
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Farbe (Hex)" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="12"/>
+                                    <TextBox Text="{Binding NewCalendarColor}" PlaceholderText="#00cccc"
+                                             CornerRadius="6" Padding="10,6" Width="120" HorizontalAlignment="Left"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button Content="Anlegen" Command="{Binding ConfirmAddCalendarCommand}"
+                                            Background="{DynamicResource ZeAccentBrush}"
+                                            Foreground="{DynamicResource ZeBackgroundBrush}"
+                                            CornerRadius="6" Padding="12,7"/>
+                                    <Button Content="Abbrechen" Command="{Binding CancelAddCalendarCommand}"
+                                            Background="{DynamicResource ZeSurfaceAltBrush}"
+                                            Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                                            CornerRadius="6" Padding="12,7"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="{Binding CalendarStatus}" Foreground="{DynamicResource ZeAccentBrush}" FontSize="12"/>
                 </StackPanel>
 
-                <!-- Unified Inbox -->
-                <CheckBox Content="Im einheitlichen Posteingang anzeigen"
-                          IsChecked="{Binding EditUnifiedInbox}"
-                          Foreground="#c0c0e0"/>
-
-                <!-- Aktionen -->
-                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
-                    <Button Content="Speichern"
-                            Command="{Binding SaveCommand}"
-                            Background="#3a3aff"
-                            Foreground="White"
-                            CornerRadius="6"
-                            Padding="14,8"/>
-                    <Button Content="Konto löschen"
-                            Command="{Binding DeleteCommand}"
-                            Background="#4a1a1a"
-                            Foreground="#ff6060"
-                            CornerRadius="6"
-                            Padding="14,8"/>
+                <!-- BENACHRICHTIGUNGEN -->
+                <StackPanel IsVisible="{Binding IsBenachrichtigungen}" Spacing="20">
+                    <TextBlock Text="Benachrichtigungen" Foreground="{DynamicResource ZeAccentBrush}" FontSize="16" FontWeight="Bold"/>
+                    <Border Background="{DynamicResource ZeSurfaceBrush}" CornerRadius="8" Padding="16">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="DESKTOP" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="11" FontWeight="Bold"/>
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Grid.Column="0" Text="Toast-Benachrichtigungen bei neuer Mail"
+                                           Foreground="{DynamicResource ZeTextPrimaryBrush}" FontSize="13" VerticalAlignment="Center"/>
+                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding ToastEnabled}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                    <Button Content="Speichern" Command="{Binding SaveBenachrichtigungenCommand}"
+                            Background="{DynamicResource ZeAccentBrush}"
+                            Foreground="{DynamicResource ZeBackgroundBrush}"
+                            CornerRadius="6" Padding="14,8"/>
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource ZeAccentBrush}" FontSize="12"/>
                 </StackPanel>
 
-                <!-- Status -->
-                <TextBlock Text="{Binding StatusMessage}"
-                           Foreground="#a0a0ff"
-                           FontSize="12"/>
-            </StackPanel>
+            </Panel>
         </ScrollViewer>
 
         <!-- ── Footer ── -->
         <Border Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="1"
-                BorderThickness="0,1,0,0" BorderBrush="#2a2a4a"
+                BorderThickness="0,1,0,0"
+                BorderBrush="{DynamicResource ZeBorderBrush}"
                 Padding="16,10">
             <Button Content="Schließen"
                     Command="{Binding CloseCommand}"
                     Background="Transparent"
-                    Foreground="#6060a0"
-                    HorizontalAlignment="Right"
-                    Padding="12,6"/>
+                    Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                    HorizontalAlignment="Right" Padding="12,6"/>
         </Border>
 
     </Grid>

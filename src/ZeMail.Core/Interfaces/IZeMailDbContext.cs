@@ -1,9 +1,9 @@
 using System.Threading;
 using System.Threading.Tasks;
 using ZeMail.Core.Entities;
- 
+
 namespace ZeMail.Core.Interfaces;
- 
+
 public interface IZeMailDbContext
 {
     IQueryable<Account>            Accounts            { get; }
@@ -20,7 +20,8 @@ public interface IZeMailDbContext
     IQueryable<TaskItem>           Tasks               { get; }
     IQueryable<TaskList>           TaskLists           { get; }
     IQueryable<CalendarEvent>      CalendarEvents      { get; }
- 
+    IQueryable<Calendar>           Calendars           { get; }
+
     void Add<T>(T entity)    where T : class;
     void Remove<T>(T entity) where T : class;
     Task<int> SaveChangesAsync(CancellationToken ct = default);

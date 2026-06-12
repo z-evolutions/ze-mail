@@ -36,7 +36,7 @@ public partial class MailboxViewModel : ViewModelBase
     [ObservableProperty]
     private string _statusText = string.Empty;
 
-    // ── Konstruktor ───────────────────────────────────────────────────────────
+    // ── Konstruktor ──────────────────────────────────────────────────────────
     public MailboxViewModel()
     {
         if (App.Services is not null)
@@ -261,28 +261,20 @@ public partial class MailboxViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void Reply()     => OpenCompose(ComposeMode.Reply);
+    private void Reply()    => OpenCompose(ComposeMode.Reply);
 
     [RelayCommand]
-    private void ReplyAll()  => OpenCompose(ComposeMode.ReplyAll);
+    private void ReplyAll() => OpenCompose(ComposeMode.ReplyAll);
 
     [RelayCommand]
-    private void Forward()   => OpenCompose(ComposeMode.Forward);
+    private void Forward()  => OpenCompose(ComposeMode.Forward);
 
     [RelayCommand]
-    private void NewMail()   => OpenCompose(ComposeMode.New);
+    private void NewMail()  => OpenCompose(ComposeMode.New);
 
     private void OpenCompose(ComposeMode mode)
     {
-        if (App.Services is null) return;
-
-        using var scope = App.Services.CreateScope();
-        var db = scope.ServiceProvider
-                    .GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
-        var account = db.Accounts.FirstOrDefault();
-        if (account is null) return;
-
-        var vm = new ComposeViewModel { AccountId = account.Id, Mode = mode };
+        var vm = new ComposeViewModel { Mode = mode };
 
         if (mode == ComposeMode.Reply && SelectedMessage is not null)
         {
@@ -302,6 +294,8 @@ public partial class MailboxViewModel : ViewModelBase
             vm.Body    = $"\n\n--- Weitergeleitet ---\nVon: {SelectedMessage.SenderDisplay}\nBetreff: {SelectedMessage.Subject}\n\n{SelectedMessage.BodyText}";
         }
 
+        vm.Init();
+
         var win = new ComposeWindow { DataContext = vm };
         vm.OnSent      += () => win.Close();
         vm.OnCancelled += () => win.Close();
@@ -318,7 +312,7 @@ public partial class MailboxViewModel : ViewModelBase
 
         SelectedFolder = Folders[0];
 
-        Messages.Add(new MessageViewModel
+        var m1 = new MessageViewModel
         {
             Id            = Guid.NewGuid(),
             Subject       = "Willkommen bei ZE-Mail!",
@@ -328,9 +322,8 @@ public partial class MailboxViewModel : ViewModelBase
             IsRead        = false,
             IsStarred     = true,
             BodyText      = "Hallo,\n\nWillkommen bei ZE-Mail — deinem selbst gehosteten E-Mail-Client.\n\nViel Spaß!"
-        });
-
-        Messages.Add(new MessageViewModel
+        };
+        var m2 = new MessageViewModel
         {
             Id            = Guid.NewGuid(),
             Subject       = "Phase 4 abgeschlossen",
@@ -340,8 +333,10 @@ public partial class MailboxViewModel : ViewModelBase
             IsRead        = true,
             IsStarred     = false,
             BodyText      = "Kalender & CalDAV sind fertig. Weiter mit Phase 5!"
-        });
+        };
 
+        Messages.Add(m1); _ = LoadAvatarAsync(m1);
+        Messages.Add(m2); _ = LoadAvatarAsync(m2);
         SelectedMessage = Messages[0];
     }
 }

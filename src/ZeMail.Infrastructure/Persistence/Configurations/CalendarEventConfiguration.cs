@@ -13,13 +13,16 @@ public class CalendarEventConfiguration : IEntityTypeConfiguration<CalendarEvent
         b.Property(e => e.CalDavHref).HasMaxLength(1000);
         b.Property(e => e.CalDavEtag).HasMaxLength(255);
         b.Property(e => e.RecurrenceRule).HasMaxLength(500);
-
         b.HasIndex(e => new { e.AccountId, e.StartUtc });
         b.HasIndex(e => e.CalDavHref);
-
         b.HasOne(e => e.Account)
          .WithMany()
          .HasForeignKey(e => e.AccountId)
          .OnDelete(DeleteBehavior.Cascade);
+        b.HasOne(e => e.Calendar)
+         .WithMany(c => c.Events)
+         .HasForeignKey(e => e.CalendarId)
+         .OnDelete(DeleteBehavior.SetNull)
+         .IsRequired(false);
     }
 }

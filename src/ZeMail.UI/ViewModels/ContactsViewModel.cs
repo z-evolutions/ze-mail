@@ -78,13 +78,10 @@ public partial class ContactsViewModel : ViewModelBase
     public ObservableCollection<ContactItemViewModel>  FilteredContacts { get; } = [];
     public ObservableCollection<ContactGroupViewModel> Groups           { get; } = [];
 
-    // Gruppen ohne "Alle Kontakte" — für das Dropdown im Bearbeitungsmodus
     public ObservableCollection<ContactGroupViewModel> AssignableGroups { get; } = [];
 
     [ObservableProperty] private ContactItemViewModel?  _selectedContact;
     [ObservableProperty] private ContactGroupViewModel? _selectedGroup;
-
-    // Gruppen-Zuordnung im Edit-Modus
     [ObservableProperty] private ContactGroupViewModel? _editContactGroup;
 
     [ObservableProperty] private string _editDisplayName  = string.Empty;
@@ -235,7 +232,6 @@ public partial class ContactsViewModel : ViewModelBase
         EditCountry      = value.Country;
         EditNotes        = value.Notes;
 
-        // Aktuelle Gruppe des Kontakts ermitteln
         if (App.Services is null) return;
         using var scope = App.Services.CreateScope();
         var db = scope.ServiceProvider
@@ -329,16 +325,13 @@ public partial class ContactsViewModel : ViewModelBase
                 c.Notes        = NullIfEmpty(EditNotes);
                 c.UpdatedAtUtc = DateTime.UtcNow;
 
-                // Gruppen-Zuordnung aktualisieren
                 var existingMemberships = db.ContactGroupMembers
                     .Where(m => m.ContactId == SelectedContact.Id).ToList();
                 foreach (var m in existingMemberships)
                     db.Remove(m);
 
                 if (targetGroupId != Guid.Empty)
-                {
                     db.Add(new ContactGroupMember { GroupId = targetGroupId, ContactId = c.Id });
-                }
 
                 await db.SaveChangesAsync();
             }
@@ -366,14 +359,9 @@ public partial class ContactsViewModel : ViewModelBase
     [RelayCommand]
     private void WriteMail()
     {
-        if (SelectedContact is null || App.Services is null) return;
-        using var scope = App.Services.CreateScope();
-        var db = scope.ServiceProvider
-                      .GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
-        var account = db.Accounts.FirstOrDefault();
-        if (account is null) return;
-
-        var vm  = new ComposeViewModel { AccountId = account.Id, To = SelectedContact.PrimaryEmail };
+        if (SelectedContact is null) return;
+        var vm = new ComposeViewModel { To = SelectedContact.PrimaryEmail };
+        vm.Init();
         var win = new ComposeWindow { DataContext = vm };
         vm.OnSent      += () => win.Close();
         vm.OnCancelled += () => win.Close();

@@ -1,0 +1,77 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ResourceDictionary.ThemeDictionaries>
+
+        <!-- ── Dark Mode (Navy/Cyan) ── -->
+        <ResourceDictionary x:Key="Dark">
+            <Color x:Key="ZeBackgroundColor">#040d1a</Color>
+            <Color x:Key="ZeSurfaceColor">#071428</Color>
+            <Color x:Key="ZeSurfaceAltColor">#0a1e3a</Color>
+            <Color x:Key="ZeSurfaceInputColor">#0d2244</Color>
+            <Color x:Key="ZeBorderColor">#0d2a4a</Color>
+            <Color x:Key="ZeAccentColor">#00cccc</Color>
+            <Color x:Key="ZeAccentDarkColor">#008888</Color>
+            <Color x:Key="ZeAccentNavyColor">#1a3aff</Color>
+            <Color x:Key="ZeTextPrimaryColor">#e0f0ff</Color>
+            <Color x:Key="ZeTextSecondaryColor">#6090b0</Color>
+            <Color x:Key="ZeTextMutedColor">#304060</Color>
+            <Color x:Key="ZeSelectedColor">#0d3060</Color>
+            <Color x:Key="ZeDangerColor">#cc2222</Color>
+            <Color x:Key="ZeDangerTextColor">#ff6060</Color>
+            <Color x:Key="ZeSuccessColor">#22aa66</Color>
+
+            <SolidColorBrush x:Key="ZeBackgroundBrush" Color="{DynamicResource ZeBackgroundColor}"/>
+            <SolidColorBrush x:Key="ZeSurfaceBrush" Color="{DynamicResource ZeSurfaceColor}"/>
+            <SolidColorBrush x:Key="ZeSurfaceAltBrush" Color="{DynamicResource ZeSurfaceAltColor}"/>
+            <SolidColorBrush x:Key="ZeSurfaceInputBrush" Color="{DynamicResource ZeSurfaceInputColor}"/>
+            <SolidColorBrush x:Key="ZeBorderBrush" Color="{DynamicResource ZeBorderColor}"/>
+            <SolidColorBrush x:Key="ZeAccentBrush" Color="{DynamicResource ZeAccentColor}"/>
+            <SolidColorBrush x:Key="ZeAccentDarkBrush" Color="{DynamicResource ZeAccentDarkColor}"/>
+            <SolidColorBrush x:Key="ZeAccentNavyBrush" Color="{DynamicResource ZeAccentNavyColor}"/>
+            <SolidColorBrush x:Key="ZeTextPrimaryBrush" Color="{DynamicResource ZeTextPrimaryColor}"/>
+            <SolidColorBrush x:Key="ZeTextSecondaryBrush" Color="{DynamicResource ZeTextSecondaryColor}"/>
+            <SolidColorBrush x:Key="ZeTextMutedBrush" Color="{DynamicResource ZeTextMutedColor}"/>
+            <SolidColorBrush x:Key="ZeSelectedBrush" Color="{DynamicResource ZeSelectedColor}"/>
+            <SolidColorBrush x:Key="ZeDangerBrush" Color="{DynamicResource ZeDangerColor}"/>
+            <SolidColorBrush x:Key="ZeDangerTextBrush" Color="{DynamicResource ZeDangerTextColor}"/>
+            <SolidColorBrush x:Key="ZeSuccessBrush" Color="{DynamicResource ZeSuccessColor}"/>
+        </ResourceDictionary>
+
+        <!-- ── Light Mode ── -->
+        <ResourceDictionary x:Key="Light">
+            <Color x:Key="ZeBackgroundColor">#f0f4f8</Color>
+            <Color x:Key="ZeSurfaceColor">#ffffff</Color>
+            <Color x:Key="ZeSurfaceAltColor">#e8f0f8</Color>
+            <Color x:Key="ZeSurfaceInputColor">#dde8f4</Color>
+            <Color x:Key="ZeBorderColor">#b0c8e0</Color>
+            <Color x:Key="ZeAccentColor">#007a7a</Color>
+            <Color x:Key="ZeAccentDarkColor">#005555</Color>
+            <Color x:Key="ZeAccentNavyColor">#1a3aff</Color>
+            <Color x:Key="ZeTextPrimaryColor">#0a1428</Color>
+            <Color x:Key="ZeTextSecondaryColor">#305070</Color>
+            <Color x:Key="ZeTextMutedColor">#6090b0</Color>
+            <Color x:Key="ZeSelectedColor">#c0e0f0</Color>
+            <Color x:Key="ZeDangerColor">#cc2222</Color>
+            <Color x:Key="ZeDangerTextColor">#cc0000</Color>
+            <Color x:Key="ZeSuccessColor">#007a44</Color>
+
+            <SolidColorBrush x:Key="ZeBackgroundBrush" Color="{DynamicResource ZeBackgroundColor}"/>
+            <SolidColorBrush x:Key="ZeSurfaceBrush" Color="{DynamicResource ZeSurfaceColor}"/>
+            <SolidColorBrush x:Key="ZeSurfaceAltBrush" Color="{DynamicResource ZeSurfaceAltColor}"/>
+            <SolidColorBrush x:Key="ZeSurfaceInputBrush" Color="{DynamicResource ZeSurfaceInputColor}"/>
+            <SolidColorBrush x:Key="ZeBorderBrush" Color="{DynamicResource ZeBorderColor}"/>
+            <SolidColorBrush x:Key="ZeAccentBrush" Color="{DynamicResource ZeAccentColor}"/>
+            <SolidColorBrush x:Key="ZeAccentDarkBrush" Color="{DynamicResource ZeAccentDarkColor}"/>
+            <SolidColorBrush x:Key="ZeAccentNavyBrush" Color="{DynamicResource ZeAccentNavyColor}"/>
+            <SolidColorBrush x:Key="ZeTextPrimaryBrush" Color="{DynamicResource ZeTextPrimaryColor}"/>
+            <SolidColorBrush x:Key="ZeTextSecondaryBrush" Color="{DynamicResource ZeTextSecondaryColor}"/>
+            <SolidColorBrush x:Key="ZeTextMutedBrush" Color="{DynamicResource ZeTextMutedColor}"/>
+            <SolidColorBrush x:Key="ZeSelectedBrush" Color="{DynamicResource ZeSelectedColor}"/>
+            <SolidColorBrush x:Key="ZeDangerBrush" Color="{DynamicResource ZeDangerColor}"/>
+            <SolidColorBrush x:Key="ZeDangerTextBrush" Color="{DynamicResource ZeDangerTextColor}"/>
+            <SolidColorBrush x:Key="ZeSuccessBrush" Color="{DynamicResource ZeSuccessColor}"/>
+        </ResourceDictionary>
+
+    </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ZeMail.Infrastructure.Persistence;
 
@@ -10,9 +11,11 @@ using ZeMail.Infrastructure.Persistence;
 namespace ZeMail.Infrastructure.Migrations
 {
     [DbContext(typeof(ZeMailDbContext))]
-    partial class ZeMailDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260612090911_feat_calendars")]
+    partial class feat_calendars
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.16");
@@ -557,15 +560,6 @@ namespace ZeMail.Infrastructure.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("TEXT");
-
-                    b.Property<bool>("UseForForward")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("UseForNew")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("UseForReply")
-                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 

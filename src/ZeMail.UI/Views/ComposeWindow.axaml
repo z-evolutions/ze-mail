@@ -5,43 +5,42 @@
         x:DataType="vm:ComposeViewModel"
         Title="Neue Mail"
         Icon="/Assets/zemail.ico"
-        Width="700" Height="560"
-        MinWidth="500" MinHeight="400"
+        Width="760" Height="640"
+        MinWidth="560" MinHeight="480"
         WindowStartupLocation="CenterOwner"
-        Background="#0f0f23">
+        Background="{DynamicResource ZeBackgroundBrush}">
 
-    <Window.Styles>
-        <Style Selector="TextBox">
-            <Setter Property="Background" Value="#1a1a3a"/>
-            <Setter Property="Foreground" Value="#e0e0ff"/>
-            <Setter Property="BorderBrush" Value="#3a3a6a"/>
-            <Setter Property="CaretBrush" Value="#7070ff"/>
-        </Style>
-        <Style Selector="TextBox:focus">
-            <Setter Property="Background" Value="#22224a"/>
-            <Setter Property="BorderBrush" Value="#7070ff"/>
-        </Style>
-        <Style Selector="TextBox:pointerover">
-            <Setter Property="Background" Value="#1e1e40"/>
-        </Style>
-        <Style Selector="TextBox /template/ Border#PART_BorderElement">
-            <Setter Property="Background" Value="#1a1a3a"/>
-        </Style>
-        <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
-            <Setter Property="Background" Value="#22224a"/>
-        </Style>
-        <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
-            <Setter Property="Background" Value="#1e1e40"/>
-        </Style>
-    </Window.Styles>
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" Margin="16">
 
-    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="16">
+        <!-- Von -->
+        <Grid Grid.Row="0" ColumnDefinitions="70,*" Margin="0,0,0,6">
+            <TextBlock Grid.Column="0" Text="Von:"
+                       Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                       FontSize="13" VerticalAlignment="Center"/>
+            <ComboBox Grid.Column="1"
+                      ItemsSource="{Binding Accounts}"
+                      SelectedItem="{Binding SelectedAccount}"
+                      HorizontalAlignment="Stretch">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:AccountItemViewModel">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{Binding Name}"
+                                       Foreground="{DynamicResource ZeTextPrimaryBrush}"
+                                       FontSize="13"/>
+                            <TextBlock Text="{Binding EmailAddress}"
+                                       Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                                       FontSize="12"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+        </Grid>
 
         <!-- An -->
-        <Grid Grid.Row="0" ColumnDefinitions="60,*" Margin="0,0,0,8">
+        <Grid Grid.Row="1" ColumnDefinitions="70,*" Margin="0,0,0,6">
             <TextBlock Grid.Column="0" Text="An:"
-                       Foreground="#8080a0" FontSize="13"
-                       VerticalAlignment="Center"/>
+                       Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                       FontSize="13" VerticalAlignment="Center"/>
             <TextBox Grid.Column="1"
                      Text="{Binding To}"
                      PlaceholderText="empfaenger@example.com"
@@ -49,10 +48,10 @@
         </Grid>
 
         <!-- CC -->
-        <Grid Grid.Row="1" ColumnDefinitions="60,*" Margin="0,0,0,8">
+        <Grid Grid.Row="2" ColumnDefinitions="70,*" Margin="0,0,0,6">
             <TextBlock Grid.Column="0" Text="CC:"
-                       Foreground="#8080a0" FontSize="13"
-                       VerticalAlignment="Center"/>
+                       Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                       FontSize="13" VerticalAlignment="Center"/>
             <TextBox Grid.Column="1"
                      Text="{Binding Cc}"
                      PlaceholderText="optional"
@@ -60,49 +59,46 @@
         </Grid>
 
         <!-- Betreff -->
-        <Grid Grid.Row="2" ColumnDefinitions="60,*" Margin="0,0,0,12">
+        <Grid Grid.Row="3" ColumnDefinitions="70,*" Margin="0,0,0,10">
             <TextBlock Grid.Column="0" Text="Betreff:"
-                       Foreground="#8080a0" FontSize="13"
-                       VerticalAlignment="Center"/>
+                       Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                       FontSize="13" VerticalAlignment="Center"/>
             <TextBox Grid.Column="1"
                      Text="{Binding Subject}"
                      PlaceholderText="Betreff"
                      CornerRadius="6" Padding="10,6"/>
         </Grid>
 
-        <!-- Body -->
-        <TextBox Grid.Row="3"
-                 Text="{Binding Body}"
-                 AcceptsReturn="True"
-                 TextWrapping="Wrap"
-                 VerticalAlignment="Stretch"
-                 Foreground="#e0e0ff"
-                 Background="#1a1a3a"
-                 BorderBrush="#3a3a6a"
-                 CornerRadius="6"
-                 Padding="10"
-                 Margin="0,0,0,12"/>
+        <!-- Body: NativeWebView als HTML-Editor -->
+        <Border Grid.Row="4"
+                BorderBrush="{DynamicResource ZeBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="6"
+                Margin="0,0,0,10"
+                ClipToBounds="True">
+            <NativeWebView x:Name="ComposeBodyWebView"/>
+        </Border>
 
         <!-- Footer -->
-        <Grid Grid.Row="4" ColumnDefinitions="*,Auto,Auto">
+        <Grid Grid.Row="5" ColumnDefinitions="*,Auto,Auto">
             <TextBlock Grid.Column="0"
                        Text="{Binding StatusMessage}"
-                       Foreground="#a0a0ff"
+                       Foreground="{DynamicResource ZeAccentBrush}"
                        FontSize="12"
                        VerticalAlignment="Center"/>
             <Button Grid.Column="1"
                     Content="Abbrechen"
                     Command="{Binding CancelCommand}"
                     Background="Transparent"
-                    Foreground="#6060a0"
+                    Foreground="{DynamicResource ZeTextSecondaryBrush}"
                     Padding="12,8"
                     Margin="0,0,8,0"/>
             <Button Grid.Column="2"
                     Content="Senden ✉"
                     Command="{Binding SendCommand}"
                     IsEnabled="{Binding IsSending, Converter={x:Static BoolConverters.Not}}"
-                    Background="#3a3aff"
-                    Foreground="White"
+                    Background="{DynamicResource ZeAccentBrush}"
+                    Foreground="{DynamicResource ZeBackgroundBrush}"
                     FontWeight="SemiBold"
                     CornerRadius="6"
                     Padding="16,8"/>

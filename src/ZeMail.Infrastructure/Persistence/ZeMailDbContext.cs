@@ -22,6 +22,7 @@ public class ZeMailDbContext : DbContext, IZeMailDbContext
     public DbSet<TaskItem>           Tasks               => Set<TaskItem>();
     public DbSet<TaskList>           TaskLists           => Set<TaskList>();
     public DbSet<CalendarEvent>      CalendarEvents      => Set<CalendarEvent>();
+    public DbSet<Calendar> Calendars => Set<Calendar>();
 
     IQueryable<Account>            IZeMailDbContext.Accounts            => Set<Account>();
     IQueryable<Folder>             IZeMailDbContext.Folders             => Set<Folder>();
@@ -37,6 +38,7 @@ public class ZeMailDbContext : DbContext, IZeMailDbContext
     IQueryable<TaskItem>           IZeMailDbContext.Tasks               => Set<TaskItem>();
     IQueryable<TaskList>           IZeMailDbContext.TaskLists           => Set<TaskList>();
     IQueryable<CalendarEvent>      IZeMailDbContext.CalendarEvents      => Set<CalendarEvent>();
+    IQueryable<Calendar> IZeMailDbContext.Calendars => Set<Calendar>();
 
     void IZeMailDbContext.Add<T>(T entity)    => base.Add(entity);
     void IZeMailDbContext.Remove<T>(T entity) => base.Remove(entity);
@@ -196,6 +198,18 @@ public class ZeMailDbContext : DbContext, IZeMailDbContext
              .OnDelete(DeleteBehavior.SetNull)
              .IsRequired(false);
             e.HasIndex(t => new { t.AccountId, t.IsCompleted, t.DueUtc });
+        });
+
+        modelBuilder.Entity<Calendar>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.Property(c => c.Name).IsRequired().HasMaxLength(200);
+            e.Property(c => c.Color).IsRequired().HasMaxLength(7).HasDefaultValue("#3a3aff");
+            e.HasOne(c => c.Account)
+            .WithMany()
+            .HasForeignKey(c => c.AccountId)
+            .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(c => c.AccountId);
         });
 
         modelBuilder.ApplyConfiguration(new CalendarEventConfiguration());

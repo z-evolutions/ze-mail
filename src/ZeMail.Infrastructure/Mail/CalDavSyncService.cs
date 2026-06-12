@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Xml.Linq;
 using Ical.Net;
+using IcalCalendar = Ical.Net.Calendar;
 using IcalEvent = Ical.Net.CalendarComponents.CalendarEvent;
 using Microsoft.Extensions.Logging;
 using ZeMail.Core.Entities;
@@ -25,7 +26,7 @@ public class CalDavSyncService
         _http = new HttpClient();
     }
 
-    // ── Initialer Sync ───────────────────────────────────────────────────────
+    // ── Initialer Sync ──────────────────────────────────────────────────────
 
     public async Task InitialSyncAsync(Account account, string calDavUrl, CancellationToken ct = default)
     {
@@ -50,19 +51,17 @@ public class CalDavSyncService
         _log.LogInformation("CalDAV initial sync complete — {Count} events", items.Count);
     }
 
-    // ── Delta-Sync via CTag ──────────────────────────────────────────────────
+    // ── Delta-Sync via CTag ─────────────────────────────────────────────────
 
     public async Task DeltaSyncAsync(Account account, string calDavUrl, CancellationToken ct = default)
     {
         var ctag = await GetCTagAsync(account, calDavUrl, ct);
         _log.LogDebug("CalDAV CTag: {CTag}", ctag);
 
-        // Vereinfachung: bei jedem Aufruf Vollsync —
-        // echter Delta-Sync würde CTag persistieren und nur bei Änderung neu laden
         await InitialSyncAsync(account, calDavUrl, ct);
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
+    // ── Helpers ─────────────────────────────────────────────────────────────
 
     private async Task UpsertEventAsync(
         Guid accountId, string href, string etag, string iCal, CancellationToken ct)
@@ -104,7 +103,7 @@ public class CalDavSyncService
     private static CalendarEvent ParseICalEvent(
         string iCal, Guid accountId, string href, string etag)
     {
-        var calendar = Calendar.Load(iCal);
+        var calendar = IcalCalendar.Load(iCal);
         var vevent   = calendar.Events.OfType<IcalEvent>().First();
 
         return new CalendarEvent

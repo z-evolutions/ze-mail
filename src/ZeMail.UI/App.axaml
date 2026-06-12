@@ -10,11 +10,48 @@
 
     <Application.Styles>
         <FluentTheme />
+
+        <!-- Globale Control-Styles -->
         <Style Selector="Button:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#2a2a5a"/>
+            <Setter Property="Background" Value="{DynamicResource ZeSurfaceAltBrush}"/>
         </Style>
         <Style Selector="Button:pressed /template/ ContentPresenter">
-            <Setter Property="Background" Value="#1a1a4a"/>
+            <Setter Property="Background" Value="{DynamicResource ZeSelectedBrush}"/>
+        </Style>
+        <Style Selector="TextBox">
+            <Setter Property="Background" Value="{DynamicResource ZeSurfaceInputBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ZeTextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ZeBorderBrush}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource ZeAccentBrush}"/>
+        </Style>
+        <Style Selector="TextBox:focus">
+            <Setter Property="BorderBrush" Value="{DynamicResource ZeAccentBrush}"/>
+        </Style>
+        <Style Selector="TextBox /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="{DynamicResource ZeSurfaceInputBrush}"/>
+        </Style>
+        <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="{DynamicResource ZeSurfaceInputBrush}"/>
+        </Style>
+        <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource ZeSelectedBrush}"/>
+        </Style>
+        <Style Selector="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource ZeSurfaceInputBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ZeTextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ZeBorderBrush}"/>
+        </Style>
+        <Style Selector="ComboBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource ZeSelectedBrush}"/>
         </Style>
     </Application.Styles>
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://ZeMail.UI/Assets/ZeMailTheme.axaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+
 </Application>

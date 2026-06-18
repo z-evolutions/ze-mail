@@ -5,10 +5,97 @@
         x:DataType="vm:EventEditorViewModel"
         Title="{Binding WindowTitle}"
         Icon="/Assets/zemail.ico"
-        Width="480" Height="520"
-        MinWidth="400" MinHeight="440"
+        Width="500" Height="520"
+        MinWidth="420" MinHeight="440"
         WindowStartupLocation="CenterOwner"
         Background="#0f0f23">
+
+    <Window.Styles>
+
+        <Style Selector="Button.DateBtn">
+            <Setter Property="Background"                  Value="#1a1a3a"/>
+            <Setter Property="BorderBrush"                 Value="#2a2a5a"/>
+            <Setter Property="BorderThickness"             Value="1"/>
+            <Setter Property="CornerRadius"                Value="6"/>
+            <Setter Property="Padding"                     Value="10,7"/>
+            <Setter Property="Foreground"                  Value="#c0c0ff"/>
+            <Setter Property="FontSize"                    Value="13"/>
+            <Setter Property="HorizontalContentAlignment"  Value="Left"/>
+            <Setter Property="HorizontalAlignment"         Value="Stretch"/>
+        </Style>
+        <Style Selector="Button.DateBtn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#22224a"/>
+        </Style>
+
+        <Style Selector="Button.CalDay">
+            <Setter Property="Width"                      Value="30"/>
+            <Setter Property="Height"                     Value="30"/>
+            <Setter Property="Padding"                    Value="0"/>
+            <Setter Property="CornerRadius"               Value="15"/>
+            <Setter Property="Background"                 Value="Transparent"/>
+            <Setter Property="BorderThickness"            Value="0"/>
+            <Setter Property="FontSize"                   Value="12"/>
+            <Setter Property="Foreground"                 Value="#c0c0e0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment"   Value="Center"/>
+        </Style>
+        <Style Selector="Button.CalDay:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#2a2a5a"/>
+        </Style>
+
+        <Style Selector="Button.CalDaySelected">
+            <Setter Property="Width"                      Value="30"/>
+            <Setter Property="Height"                     Value="30"/>
+            <Setter Property="Padding"                    Value="0"/>
+            <Setter Property="CornerRadius"               Value="15"/>
+            <Setter Property="Background"                 Value="#3a3aff"/>
+            <Setter Property="BorderThickness"            Value="0"/>
+            <Setter Property="FontSize"                   Value="12"/>
+            <Setter Property="FontWeight"                 Value="Bold"/>
+            <Setter Property="Foreground"                 Value="White"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment"   Value="Center"/>
+        </Style>
+
+        <Style Selector="Button.CalDayToday">
+            <Setter Property="Width"                      Value="30"/>
+            <Setter Property="Height"                     Value="30"/>
+            <Setter Property="Padding"                    Value="0"/>
+            <Setter Property="CornerRadius"               Value="15"/>
+            <Setter Property="Background"                 Value="Transparent"/>
+            <Setter Property="BorderBrush"                Value="#3a3aff"/>
+            <Setter Property="BorderThickness"            Value="1"/>
+            <Setter Property="FontSize"                   Value="12"/>
+            <Setter Property="Foreground"                 Value="#8080ff"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment"   Value="Center"/>
+        </Style>
+
+        <Style Selector="Button.CalDayOtherMonth">
+            <Setter Property="Opacity" Value="0.3"/>
+        </Style>
+
+        <Style Selector="Button.CalNav">
+            <Setter Property="Background"      Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding"         Value="6,4"/>
+            <Setter Property="Foreground"      Value="#8080c0"/>
+            <Setter Property="FontSize"        Value="16"/>
+        </Style>
+
+        <Style Selector="ComboBox.TimeCombo">
+            <Setter Property="Width"           Value="100"/>
+            <Setter Property="Height"          Value="34"/>
+            <Setter Property="FontSize"        Value="13"/>
+            <Setter Property="Foreground"      Value="#c0c0ff"/>
+            <Setter Property="Background"      Value="#1a1a3a"/>
+            <Setter Property="BorderBrush"     Value="#2a2a5a"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius"    Value="6"/>
+            <Setter Property="Padding"         Value="8,0"/>
+        </Style>
+
+    </Window.Styles>
 
     <Grid RowDefinitions="*,Auto" Margin="20">
 
@@ -36,45 +123,153 @@
                           IsChecked="{Binding IsAllDay}"
                           Foreground="#c0c0e0"/>
 
-                <!-- Start (nicht ganztägig) -->
-                <Grid ColumnDefinitions="*,16,140" IsVisible="{Binding !IsAllDay}">
+                <!-- ══ START ══ -->
+                <Grid ColumnDefinitions="*,12,Auto">
+                    <!-- Startdatum – Popup nur einmal, immer sichtbar -->
                     <StackPanel Grid.Column="0" Spacing="4">
                         <TextBlock Text="Startdatum" Foreground="#8080a0" FontSize="12"/>
-                        <DatePicker SelectedDate="{Binding StartDate}" CornerRadius="6"/>
+                        <Panel>
+                            <Button Content="{Binding StartDateLabel}"
+                                    Command="{Binding ToggleStartCalendarCommand}"
+                                    Classes="DateBtn"/>
+                            <Popup IsOpen="{Binding StartCalendarOpen}"
+                                   Placement="Bottom"
+                                   PlacementTarget="{Binding $parent[Panel]}"
+                                   IsLightDismissEnabled="True">
+                                <Border Background="#12122a" BorderBrush="#2a2a5a"
+                                        BorderThickness="1" CornerRadius="8"
+                                        Padding="10" Width="230">
+                                    <StackPanel Spacing="6">
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <Button Grid.Column="0" Content="‹"
+                                                    Command="{Binding StartCalendarPrevCommand}"
+                                                    Classes="CalNav"/>
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding StartCalendarTitle}"
+                                                       Foreground="#c0c0ff" FontWeight="SemiBold"
+                                                       FontSize="13" HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"/>
+                                            <Button Grid.Column="2" Content="›"
+                                                    Command="{Binding StartCalendarNextCommand}"
+                                                    Classes="CalNav"/>
+                                        </Grid>
+                                        <ItemsControl ItemsSource="{Binding StartWeekHeaders}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate><UniformGrid Columns="7"/></ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding}" Foreground="#4040a0"
+                                                               FontSize="11" TextAlignment="Center"
+                                                               Width="30" Height="22" VerticalAlignment="Center"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <ItemsControl ItemsSource="{Binding StartCalendarDays}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate><UniformGrid Columns="7"/></ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:MiniCalendarDay">
+                                                    <Button Content="{Binding Label}"
+                                                            Command="{Binding $parent[Window].((vm:EventEditorViewModel)DataContext).SelectStartDayCommand}"
+                                                            CommandParameter="{Binding}"
+                                                            Classes.CalDaySelected="{Binding IsSelected}"
+                                                            Classes.CalDayToday="{Binding IsToday}"
+                                                            Classes.CalDay="{Binding !IsSelected}"
+                                                            Classes.CalDayOtherMonth="{Binding !IsCurrentMonth}"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </Popup>
+                        </Panel>
                     </StackPanel>
-                    <StackPanel Grid.Column="2" Spacing="4">
+
+                    <!-- Startuhrzeit – nur bei nicht-ganztägig -->
+                    <StackPanel Grid.Column="2" Spacing="4"
+                                IsVisible="{Binding !IsAllDay}">
                         <TextBlock Text="Uhrzeit" Foreground="#8080a0" FontSize="12"/>
-                        <TimePicker SelectedTime="{Binding StartTime}"
-                                    ClockIdentifier="24HourClock"
-                                    CornerRadius="6"/>
+                        <ComboBox ItemsSource="{Binding TimeSlots}"
+                                  SelectedItem="{Binding SelectedStartTime}"
+                                  Classes="TimeCombo"/>
                     </StackPanel>
                 </Grid>
 
-                <!-- Start (ganztägig) -->
-                <StackPanel Spacing="4" IsVisible="{Binding IsAllDay}">
-                    <TextBlock Text="Startdatum" Foreground="#8080a0" FontSize="12"/>
-                    <DatePicker SelectedDate="{Binding StartDate}" CornerRadius="6"/>
-                </StackPanel>
-
-                <!-- Ende (nicht ganztägig) -->
-                <Grid ColumnDefinitions="*,16,140" IsVisible="{Binding !IsAllDay}">
+                <!-- ══ ENDE ══ -->
+                <Grid ColumnDefinitions="*,12,Auto">
+                    <!-- Enddatum – Popup nur einmal, immer sichtbar -->
                     <StackPanel Grid.Column="0" Spacing="4">
                         <TextBlock Text="Enddatum" Foreground="#8080a0" FontSize="12"/>
-                        <DatePicker SelectedDate="{Binding EndDate}" CornerRadius="6"/>
+                        <Panel>
+                            <Button Content="{Binding EndDateLabel}"
+                                    Command="{Binding ToggleEndCalendarCommand}"
+                                    Classes="DateBtn"/>
+                            <Popup IsOpen="{Binding EndCalendarOpen}"
+                                   Placement="Bottom"
+                                   PlacementTarget="{Binding $parent[Panel]}"
+                                   IsLightDismissEnabled="True">
+                                <Border Background="#12122a" BorderBrush="#2a2a5a"
+                                        BorderThickness="1" CornerRadius="8"
+                                        Padding="10" Width="230">
+                                    <StackPanel Spacing="6">
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <Button Grid.Column="0" Content="‹"
+                                                    Command="{Binding EndCalendarPrevCommand}"
+                                                    Classes="CalNav"/>
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding EndCalendarTitle}"
+                                                       Foreground="#c0c0ff" FontWeight="SemiBold"
+                                                       FontSize="13" HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"/>
+                                            <Button Grid.Column="2" Content="›"
+                                                    Command="{Binding EndCalendarNextCommand}"
+                                                    Classes="CalNav"/>
+                                        </Grid>
+                                        <ItemsControl ItemsSource="{Binding EndWeekHeaders}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate><UniformGrid Columns="7"/></ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding}" Foreground="#4040a0"
+                                                               FontSize="11" TextAlignment="Center"
+                                                               Width="30" Height="22" VerticalAlignment="Center"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <ItemsControl ItemsSource="{Binding EndCalendarDays}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate><UniformGrid Columns="7"/></ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:MiniCalendarDay">
+                                                    <Button Content="{Binding Label}"
+                                                            Command="{Binding $parent[Window].((vm:EventEditorViewModel)DataContext).SelectEndDayCommand}"
+                                                            CommandParameter="{Binding}"
+                                                            Classes.CalDaySelected="{Binding IsSelected}"
+                                                            Classes.CalDayToday="{Binding IsToday}"
+                                                            Classes.CalDay="{Binding !IsSelected}"
+                                                            Classes.CalDayOtherMonth="{Binding !IsCurrentMonth}"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </Popup>
+                        </Panel>
                     </StackPanel>
-                    <StackPanel Grid.Column="2" Spacing="4">
+
+                    <!-- Enduhrzeit – nur bei nicht-ganztägig -->
+                    <StackPanel Grid.Column="2" Spacing="4"
+                                IsVisible="{Binding !IsAllDay}">
                         <TextBlock Text="Uhrzeit" Foreground="#8080a0" FontSize="12"/>
-                        <TimePicker SelectedTime="{Binding EndTime}"
-                                    ClockIdentifier="24HourClock"
-                                    CornerRadius="6"/>
+                        <ComboBox ItemsSource="{Binding TimeSlots}"
+                                  SelectedItem="{Binding SelectedEndTime}"
+                                  Classes="TimeCombo"/>
                     </StackPanel>
                 </Grid>
-
-                <!-- Ende (ganztägig) -->
-                <StackPanel Spacing="4" IsVisible="{Binding IsAllDay}">
-                    <TextBlock Text="Enddatum" Foreground="#8080a0" FontSize="12"/>
-                    <DatePicker SelectedDate="{Binding EndDate}" CornerRadius="6"/>
-                </StackPanel>
 
                 <!-- Beschreibung -->
                 <StackPanel Spacing="4">

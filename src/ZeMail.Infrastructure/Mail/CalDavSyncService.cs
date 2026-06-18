@@ -1,210 +1,272 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Xml.Linq;
 using Ical.Net;
 using IcalCalendar = Ical.Net.Calendar;
-using IcalEvent = Ical.Net.CalendarComponents.CalendarEvent;
+using IcalEvent    = Ical.Net.CalendarComponents.CalendarEvent;
 using Microsoft.Extensions.Logging;
 using ZeMail.Core.Entities;
 using ZeMail.Core.Interfaces;
+using ZeCalendar = ZeMail.Core.Entities.Calendar;
 
 namespace ZeMail.Infrastructure.Mail;
 
-public class CalDavSyncService
+public class CalDavSyncService : ICalendarSyncService
 {
     private readonly IZeMailDbContext           _db;
     private readonly ILogger<CalDavSyncService> _log;
-    private readonly HttpClient                 _http;
 
     private static readonly XNamespace Dav  = "DAV:";
     private static readonly XNamespace CDav = "urn:ietf:params:xml:ns:caldav";
 
     public CalDavSyncService(IZeMailDbContext db, ILogger<CalDavSyncService> log)
     {
-        _db   = db;
-        _log  = log;
-        _http = new HttpClient();
+        _db  = db;
+        _log = log;
     }
 
-    // ── Initialer Sync ──────────────────────────────────────────────────────
+    // ── ICalendarSyncService ────────────────────────────────────────────────
 
-    public async Task InitialSyncAsync(Account account, string calDavUrl, CancellationToken ct = default)
+    public async Task SyncCalendarAsync(ZeCalendar calendar, CancellationToken ct = default)
     {
-        _log.LogInformation("CalDAV initial sync for account {Id} @ {Url}", account.Id, calDavUrl);
-
-        var request  = BuildReportRequest();
-        var response = await SendCalDavAsync(account, calDavUrl, request, ct);
-
-        if (!response.IsSuccessStatusCode)
+        if (calendar.Type != CalendarType.CalDav
+            || string.IsNullOrWhiteSpace(calendar.ServerUrl)
+            || string.IsNullOrWhiteSpace(calendar.Username)
+            || string.IsNullOrWhiteSpace(calendar.PasswordEncrypted))
         {
-            _log.LogWarning("CalDAV REPORT failed: {Status}", response.StatusCode);
+            _log.LogWarning("Kalender {Id} ist kein CalDAV-Kalender oder hat keine Zugangsdaten.", calendar.Id);
             return;
         }
 
-        var xml   = await response.Content.ReadAsStringAsync(ct);
-        var items = ParseMultiStatus(xml);
-
-        foreach (var (href, etag, iCal) in items)
-            await UpsertEventAsync(account.Id, href, etag, iCal, ct);
-
-        await _db.SaveChangesAsync(ct);
-        _log.LogInformation("CalDAV initial sync complete — {Count} events", items.Count);
-    }
-
-    // ── Delta-Sync via CTag ─────────────────────────────────────────────────
-
-    public async Task DeltaSyncAsync(Account account, string calDavUrl, CancellationToken ct = default)
-    {
-        var ctag = await GetCTagAsync(account, calDavUrl, ct);
-        _log.LogDebug("CalDAV CTag: {CTag}", ctag);
-
-        await InitialSyncAsync(account, calDavUrl, ct);
-    }
-
-    // ── Helpers ─────────────────────────────────────────────────────────────
-
-    private async Task UpsertEventAsync(
-        Guid accountId, string href, string etag, string iCal, CancellationToken ct)
-    {
-        var existing = _db.CalendarEvents.FirstOrDefault(e => e.CalDavHref == href);
-
-        if (existing is not null && existing.CalDavEtag == etag) return;
-
-        CalendarEvent ev;
         try
         {
-            ev = ParseICalEvent(iCal, accountId, href, etag);
+            var password   = DecryptPassword(calendar.PasswordEncrypted);
+            using var http = BuildHttpClient(calendar.ServerUrl, calendar.Username, password);
+
+            var remoteItems = await FetchRemoteItemsAsync(http, calendar.ServerUrl, ct);
+            await MergeEventsAsync(calendar, remoteItems, ct);
+
+            calendar.LastSyncedAtUtc = DateTime.UtcNow;
+            await _db.SaveChangesAsync(ct);
+
+            _log.LogInformation("Kalender {Name} synchronisiert – {Count} Einträge.", calendar.Name, remoteItems.Count);
         }
         catch (Exception ex)
         {
-            _log.LogWarning(ex, "iCal parse failed for {Href}", href);
-            return;
-        }
-
-        if (existing is null)
-        {
-            _db.Add(ev);
-        }
-        else
-        {
-            existing.Title          = ev.Title;
-            existing.Description    = ev.Description;
-            existing.Location       = ev.Location;
-            existing.StartUtc       = ev.StartUtc;
-            existing.EndUtc         = ev.EndUtc;
-            existing.IsAllDay       = ev.IsAllDay;
-            existing.RecurrenceRule = ev.RecurrenceRule;
-            existing.ICalRaw        = ev.ICalRaw;
-            existing.CalDavEtag     = ev.CalDavEtag;
-            existing.UpdatedAtUtc   = DateTime.UtcNow;
+            _log.LogError(ex, "Fehler beim Synchronisieren von Kalender {Id}.", calendar.Id);
         }
     }
 
-    private static CalendarEvent ParseICalEvent(
-        string iCal, Guid accountId, string href, string etag)
+    public async Task<string?> TestConnectionAsync(string serverUrl, string username, string password, CancellationToken ct = default)
     {
-        var calendar = IcalCalendar.Load(iCal);
-        var vevent   = calendar.Events.OfType<IcalEvent>().First();
-
-        return new CalendarEvent
+        try
         {
-            Id             = Guid.NewGuid(),
-            AccountId      = accountId,
-            Title          = vevent.Summary     ?? "(kein Titel)",
-            Description    = vevent.Description,
-            Location       = vevent.Location,
-            StartUtc       = vevent.DtStart.AsUtc,
-            EndUtc         = vevent.DtEnd?.AsUtc ?? vevent.DtStart.AsUtc.AddHours(1),
-            IsAllDay       = vevent.IsAllDay,
-            RecurrenceRule = vevent.RecurrenceRules?.FirstOrDefault()?.ToString(),
-            ICalRaw        = iCal,
-            CalDavHref     = href,
-            CalDavEtag     = etag,
-            CreatedAtUtc   = DateTime.UtcNow,
-            UpdatedAtUtc   = DateTime.UtcNow
-        };
+            using var http  = BuildHttpClient(serverUrl, username, password);
+            var request     = new HttpRequestMessage(new HttpMethod("PROPFIND"), serverUrl);
+            request.Headers.Add("Depth", "0");
+            request.Content = new StringContent(PropfindBody, Encoding.UTF8, "application/xml");
+
+            var response = await http.SendAsync(request, ct);
+            if (response.StatusCode is HttpStatusCode.MultiStatus or HttpStatusCode.OK)
+                return null;
+
+            return $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}";
+        }
+        catch (Exception ex)
+        {
+            return ex.Message;
+        }
     }
 
-    private static HttpContent BuildReportRequest()
+    // ── Fetch ───────────────────────────────────────────────────────────────
+
+    private static async Task<Dictionary<string, (string Etag, string ICal)>> FetchRemoteItemsAsync(
+        HttpClient http, string url, CancellationToken ct)
     {
-        var xml = """
-            <?xml version="1.0" encoding="utf-8"?>
-            <C:calendar-query xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+        var reportReq = new HttpRequestMessage(new HttpMethod("REPORT"), url);
+        reportReq.Headers.Add("Depth", "1");
+        reportReq.Content = new StringContent(CalendarQueryBody, Encoding.UTF8, "application/xml");
+
+        var reportResp = await http.SendAsync(reportReq, ct);
+        reportResp.EnsureSuccessStatusCode();
+
+        var reportXml = await reportResp.Content.ReadAsStringAsync(ct);
+        var hrefs     = ParseHrefsFromReport(reportXml);
+
+        if (hrefs.Count == 0) return [];
+
+        var multigetBody = BuildMultigetBody(hrefs);
+        var multigetReq  = new HttpRequestMessage(new HttpMethod("REPORT"), url);
+        multigetReq.Headers.Add("Depth", "1");
+        multigetReq.Content = new StringContent(multigetBody, Encoding.UTF8, "application/xml");
+
+        var multigetResp = await http.SendAsync(multigetReq, ct);
+        multigetResp.EnsureSuccessStatusCode();
+
+        var multiXml = await multigetResp.Content.ReadAsStringAsync(ct);
+        return ParseMultigetResponse(multiXml);
+    }
+
+    // ── Merge ───────────────────────────────────────────────────────────────
+
+    private async Task MergeEventsAsync(
+        ZeCalendar calendar,
+        Dictionary<string, (string Etag, string ICal)> remoteItems,
+        CancellationToken ct)
+    {
+        var localEvents = await Task.Run(() =>
+            _db.CalendarEvents
+               .Where(e => e.CalendarId == calendar.Id)
+               .ToList(), ct);
+
+        var localByHref = localEvents
+            .Where(e => e.CalDavHref != null)
+            .ToDictionary(e => e.CalDavHref!, e => e);
+
+        var remoteHrefs = remoteItems.Keys.ToHashSet();
+
+        foreach (var local in localByHref.Values.Where(e => !remoteHrefs.Contains(e.CalDavHref!)))
+            _db.Remove(local);
+
+        foreach (var (href, (etag, ical)) in remoteItems)
+        {
+            if (localByHref.TryGetValue(href, out var existing))
+            {
+                if (existing.CalDavEtag == etag) continue;
+                ApplyICalToEvent(existing, ical, etag);
+            }
+            else
+            {
+                var newEvent = new CalendarEvent
+                {
+                    AccountId  = calendar.AccountId,
+                    CalendarId = calendar.Id,
+                    CalDavHref = href,
+                };
+                ApplyICalToEvent(newEvent, ical, etag);
+                _db.Add(newEvent);
+            }
+        }
+    }
+
+    private static void ApplyICalToEvent(CalendarEvent ev, string ical, string etag)
+    {
+        try
+        {
+            var cal    = IcalCalendar.Load(ical);
+            var vEvent = cal.Events.OfType<IcalEvent>().FirstOrDefault();
+            if (vEvent == null) return;
+
+            ev.Title        = vEvent.Summary     ?? "(kein Titel)";
+            ev.Description  = vEvent.Description;
+            ev.Location     = vEvent.Location;
+            ev.IsAllDay     = vEvent.IsAllDay;
+            ev.ICalRaw      = ical;
+            ev.CalDavEtag   = etag;
+            ev.UpdatedAtUtc = DateTime.UtcNow;
+
+            ev.StartUtc = vEvent.DtStart.IsUtc
+                ? vEvent.DtStart.Value
+                : TimeZoneInfo.ConvertTimeToUtc(vEvent.DtStart.Value);
+
+            var dtEnd = vEvent.DtEnd ?? vEvent.DtStart;
+            ev.EndUtc = dtEnd.IsUtc
+                ? dtEnd.Value
+                : TimeZoneInfo.ConvertTimeToUtc(dtEnd.Value);
+        }
+        catch { /* ungültiges iCal überspringen */ }
+    }
+
+    // ── XML ─────────────────────────────────────────────────────────────────
+
+    private const string PropfindBody = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <D:propfind xmlns:D="DAV:">
+          <D:prop>
+            <D:resourcetype/>
+            <D:displayname/>
+          </D:prop>
+        </D:propfind>
+        """;
+
+    private const string CalendarQueryBody = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <C:calendar-query xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+          <D:prop>
+            <D:getetag/>
+            <D:href/>
+          </D:prop>
+          <C:filter>
+            <C:comp-filter name="VCALENDAR">
+              <C:comp-filter name="VEVENT"/>
+            </C:comp-filter>
+          </C:filter>
+        </C:calendar-query>
+        """;
+
+    private static string BuildMultigetBody(IEnumerable<string> hrefs)
+    {
+        var hrefElements = string.Join("\n", hrefs.Select(h => $"  <D:href>{h}</D:href>"));
+        return $"""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <C:calendar-multiget xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
               <D:prop>
                 <D:getetag/>
                 <C:calendar-data/>
               </D:prop>
-              <C:filter>
-                <C:comp-filter name="VCALENDAR">
-                  <C:comp-filter name="VEVENT"/>
-                </C:comp-filter>
-              </C:filter>
-            </C:calendar-query>
+            {hrefElements}
+            </C:calendar-multiget>
             """;
-        return new StringContent(xml, Encoding.UTF8, "application/xml");
     }
 
-    private async Task<HttpResponseMessage> SendCalDavAsync(
-        Account account, string url, HttpContent body, CancellationToken ct)
+    private static List<string> ParseHrefsFromReport(string xml)
     {
-        var req = new HttpRequestMessage(new HttpMethod("REPORT"), url)
+        var result = new List<string>();
+        try
         {
-            Content = body
-        };
-        req.Headers.Add("Depth", "1");
-
-        var credentials = Convert.ToBase64String(
-            Encoding.UTF8.GetBytes($"{account.Username}:{account.Password}"));
-        req.Headers.Authorization = new AuthenticationHeaderValue("Basic", credentials);
-
-        return await _http.SendAsync(req, ct);
-    }
-
-    private async Task<string> GetCTagAsync(Account account, string url, CancellationToken ct)
-    {
-        var xml = """
-            <?xml version="1.0" encoding="utf-8"?>
-            <D:propfind xmlns:D="DAV:" xmlns:CS="http://calendarserver.org/ns/">
-              <D:prop><CS:getctag/></D:prop>
-            </D:propfind>
-            """;
-
-        var req = new HttpRequestMessage(new HttpMethod("PROPFIND"), url)
-        {
-            Content = new StringContent(xml, Encoding.UTF8, "application/xml")
-        };
-        req.Headers.Add("Depth", "0");
-
-        var credentials = Convert.ToBase64String(
-            Encoding.UTF8.GetBytes($"{account.Username}:{account.Password}"));
-        req.Headers.Authorization = new AuthenticationHeaderValue("Basic", credentials);
-
-        var resp = await _http.SendAsync(req, ct);
-        var body = await resp.Content.ReadAsStringAsync(ct);
-
-        var doc  = XDocument.Parse(body);
-        var ctag = doc.Descendants()
-                      .FirstOrDefault(x => x.Name.LocalName == "getctag")?.Value;
-        return ctag ?? string.Empty;
-    }
-
-    private static List<(string Href, string Etag, string ICal)> ParseMultiStatus(string xml)
-    {
-        var result = new List<(string, string, string)>();
-        var doc    = XDocument.Parse(xml);
-
-        foreach (var response in doc.Descendants(Dav + "response"))
-        {
-            var href = response.Element(Dav + "href")?.Value ?? "";
-            var etag = response.Descendants(Dav + "getetag")
-                               .FirstOrDefault()?.Value ?? "";
-            var iCal = response.Descendants(CDav + "calendar-data")
-                               .FirstOrDefault()?.Value ?? "";
-
-            if (!string.IsNullOrEmpty(iCal))
-                result.Add((href, etag, iCal));
+            var doc = XDocument.Parse(xml);
+            foreach (var resp in doc.Descendants(Dav + "response"))
+            {
+                var href = resp.Element(Dav + "href")?.Value;
+                if (!string.IsNullOrWhiteSpace(href)) result.Add(href);
+            }
         }
-
+        catch { }
         return result;
     }
+
+    private static Dictionary<string, (string Etag, string ICal)> ParseMultigetResponse(string xml)
+    {
+        var result = new Dictionary<string, (string, string)>();
+        try
+        {
+            var doc = XDocument.Parse(xml);
+            foreach (var resp in doc.Descendants(Dav + "response"))
+            {
+                var href = resp.Element(Dav + "href")?.Value;
+                var etag = resp.Descendants(Dav + "getetag").FirstOrDefault()?.Value ?? "";
+                var ical = resp.Descendants(CDav + "calendar-data").FirstOrDefault()?.Value ?? "";
+                if (href != null && !string.IsNullOrWhiteSpace(ical))
+                    result[href] = (etag, ical);
+            }
+        }
+        catch { }
+        return result;
+    }
+
+    // ── HTTP ────────────────────────────────────────────────────────────────
+
+    private static HttpClient BuildHttpClient(string baseUrl, string username, string password)
+    {
+        var handler = new HttpClientHandler { PreAuthenticate = true };
+        var client  = new HttpClient(handler) { BaseAddress = new Uri(baseUrl) };
+        var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", encoded);
+        return client;
+    }
+
+    // ── Encryption Stub ──────────────────────────────────────────────────────
+    // TODO: Später durch DPAPI/AES ersetzen
+    private static string DecryptPassword(string encrypted) => encrypted;
 }

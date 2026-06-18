@@ -16,7 +16,9 @@ public partial class CalendarEventViewModel : ObservableObject
     public string   Color    { get; init; } = "#5AC8FA";
 
     public string StartTime    => IsAllDay ? "Ganztägig" : StartUtc.ToLocalTime().ToString("HH:mm");
-    public string DisplayTitle => IsAllDay ? Title : $"{StartTime} {Title}";
+    public string EndTime      => IsAllDay ? string.Empty : EndUtc.ToLocalTime().ToString("HH:mm");
+    public string TimeRange    => IsAllDay ? "Ganztägig" : $"{StartTime} – {EndTime}";
+    public string DisplayTitle => IsAllDay ? Title : $"{TimeRange} {Title}";
 
     public double TopOffset
     {

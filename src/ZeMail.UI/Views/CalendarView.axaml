@@ -194,7 +194,7 @@
                                                                    Foreground="White" FontSize="11"
                                                                    FontWeight="SemiBold"
                                                                    TextTrimming="CharacterEllipsis"/>
-                                                        <TextBlock Text="{Binding StartTime}"
+                                                        <TextBlock Text="{Binding TimeRange}"
                                                                    Foreground="#c0c0ff" FontSize="10"/>
                                                     </StackPanel>
                                                 </Button>
@@ -273,7 +273,7 @@
                                             <TextBlock Text="{Binding Title}"
                                                        Foreground="White" FontSize="13"
                                                        FontWeight="SemiBold"/>
-                                            <TextBlock Text="{Binding StartTime}"
+                                            <TextBlock Text="{Binding TimeRange}"
                                                        Foreground="#c0c0ff" FontSize="11"/>
                                         </StackPanel>
                                     </Button>
@@ -320,7 +320,7 @@
                                     <TextBlock Text="{Binding Title}"
                                                Foreground="#e0e0ff" FontSize="13" FontWeight="SemiBold"
                                                TextWrapping="Wrap"/>
-                                    <TextBlock Text="{Binding StartTime}"
+                                    <TextBlock Text="{Binding TimeRange}"
                                                Foreground="#7070ff" FontSize="11"/>
                                     <TextBlock Text="{Binding Location}"
                                                Foreground="#6060a0" FontSize="11"

@@ -37,6 +37,8 @@ class Program
         sc.AddScoped<ISearchService, SearchService>();
         sc.AddScoped<IImapSyncService, ImapSyncService>();
         sc.AddScoped<IAccountTestService, AccountTestService>();
+        sc.AddScoped<ICalendarSyncService, CalDavSyncService>();
+        sc.AddHostedService<CalendarSyncOrchestrator>();
 
         sc.AddLogging(b => b
             .AddConsole()

@@ -270,27 +270,51 @@ public partial class CalendarViewModel : ViewModelBase
         var account = db.Accounts.FirstOrDefault();
         if (account is null) return;
 
-        var vm = existing is null
-            ? new EventEditorViewModel
-              {
-                  AccountId = account.Id,
-                  StartDate = new DateTimeOffset(date.Date),
-                  EndDate   = new DateTimeOffset(date.Date),
-                  StartTime = TimeSpan.FromHours(9),
-                  EndTime   = TimeSpan.FromHours(10),
-              }
-            : new EventEditorViewModel
-              {
-                  EventId   = existing.Id,
-                  AccountId = account.Id,
-                  Title     = existing.Title,
-                  Location  = existing.Location ?? string.Empty,
-                  StartDate = new DateTimeOffset(existing.StartUtc.ToLocalTime().Date),
-                  StartTime = existing.StartUtc.ToLocalTime().TimeOfDay,
-                  EndDate   = new DateTimeOffset(existing.EndUtc.ToLocalTime().Date),
-                  EndTime   = existing.EndUtc.ToLocalTime().TimeOfDay,
-                  IsAllDay  = existing.IsAllDay,
-              };
+        // Standarddauer + Zeitslot-Schritte aus Settings
+        var stepMinutes     = App.Settings.DefaultEventDurationMinutes;
+        if (stepMinutes <= 0) stepMinutes = 15;
+
+        EventEditorViewModel vm;
+
+        if (existing is null)
+        {
+            // Startzeit: aktuelle Uhrzeit auf nächsten Slot runden
+            var now      = DateTime.Now;
+            int totalMin = now.Hour * 60 + now.Minute;
+            int snapped  = (int)Math.Ceiling((double)totalMin / stepMinutes) * stepMinutes;
+            if (snapped >= 24 * 60) snapped = 23 * 60;
+
+            var startTime = TimeSpan.FromMinutes(snapped);
+            var endTime   = startTime.Add(TimeSpan.FromMinutes(stepMinutes));
+            if (endTime.TotalMinutes >= 24 * 60)
+                endTime = TimeSpan.FromHours(23).Add(TimeSpan.FromMinutes(45));
+
+            vm = new EventEditorViewModel
+            {
+                AccountId = account.Id,
+                StartDate = date.Date,
+                EndDate   = date.Date,
+            };
+            vm.InitTimeSlots(stepMinutes);
+            vm.SetStartTime(startTime);
+            vm.SetEndTime(endTime);
+        }
+        else
+        {
+            vm = new EventEditorViewModel
+            {
+                EventId   = existing.Id,
+                AccountId = account.Id,
+                Title     = existing.Title,
+                Location  = existing.Location ?? string.Empty,
+                StartDate = existing.StartUtc.ToLocalTime().Date,
+                EndDate   = existing.EndUtc.ToLocalTime().Date,
+                IsAllDay  = existing.IsAllDay,
+            };
+            vm.InitTimeSlots(stepMinutes);
+            vm.SetStartTime(existing.StartUtc.ToLocalTime().TimeOfDay);
+            vm.SetEndTime(existing.EndUtc.ToLocalTime().TimeOfDay);
+        }
 
         var win = new EventEditorWindow { DataContext = vm };
         vm.OnSaved     += () => { win.Close(); _ = LoadEventsAsync(); };

@@ -205,11 +205,19 @@ public class ZeMailDbContext : DbContext, IZeMailDbContext
             e.HasKey(c => c.Id);
             e.Property(c => c.Name).IsRequired().HasMaxLength(200);
             e.Property(c => c.Color).IsRequired().HasMaxLength(7).HasDefaultValue("#3a3aff");
+            e.Property(c => c.Type).HasConversion<int>().HasDefaultValue(CalendarType.Local);
+            e.Property(c => c.SyncIntervalMinutes).HasDefaultValue(15);
             e.HasOne(c => c.Account)
             .WithMany()
             .HasForeignKey(c => c.AccountId)
             .OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(c => c.AccountId);
+            // CalendarEvent FK
+            e.HasMany(c => c.Events)
+            .WithOne(ev => ev.Calendar)
+            .HasForeignKey(ev => ev.CalendarId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
         });
 
         modelBuilder.ApplyConfiguration(new CalendarEventConfiguration());

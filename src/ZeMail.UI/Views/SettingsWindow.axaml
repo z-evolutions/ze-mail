@@ -424,24 +424,52 @@
                 <!-- MEINE KALENDER -->
                 <StackPanel IsVisible="{Binding IsMeineKalender}" Spacing="20">
                     <TextBlock Text="Meine Kalender" Foreground="{DynamicResource ZeAccentBrush}" FontSize="16" FontWeight="Bold"/>
+
+                    <!-- Kalender-Liste -->
                     <ItemsControl ItemsSource="{Binding Calendars}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:CalendarItemViewModel">
                                 <Border Background="{DynamicResource ZeSurfaceBrush}"
                                         CornerRadius="8" Padding="12,10" Margin="0,0,0,6">
-                                    <Grid ColumnDefinitions="16,*,Auto,Auto">
+                                    <Grid ColumnDefinitions="16,*,Auto,Auto,Auto">
+                                        <!-- Farbindikator -->
                                         <Border Grid.Column="0" Width="14" Height="14"
                                                 CornerRadius="7" Background="{Binding Color}"
                                                 VerticalAlignment="Center"/>
+                                        <!-- Name + Typ -->
                                         <StackPanel Grid.Column="1" Margin="10,0" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding Name}"
-                                                       Foreground="{DynamicResource ZeTextPrimaryBrush}"
-                                                       FontSize="13" FontWeight="SemiBold"/>
-                                            <TextBlock Text="Standard"
-                                                       Foreground="{DynamicResource ZeSuccessBrush}"
-                                                       FontSize="11" IsVisible="{Binding IsDefault}"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <TextBlock Text="{Binding Name}"
+                                                           Foreground="{DynamicResource ZeTextPrimaryBrush}"
+                                                           FontSize="13" FontWeight="SemiBold"/>
+                                                <Border Background="#1a1a3a" CornerRadius="4" Padding="4,1"
+                                                        IsVisible="{Binding IsCalDav}">
+                                                    <TextBlock Text="CalDAV"
+                                                               Foreground="#00cccc" FontSize="10"/>
+                                                </Border>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <TextBlock Text="Standard"
+                                                           Foreground="{DynamicResource ZeSuccessBrush}"
+                                                           FontSize="11" IsVisible="{Binding IsDefault}"/>
+                                                <TextBlock Text="{Binding ServerUrl}"
+                                                           Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                                                           FontSize="10" IsVisible="{Binding IsCalDav}"
+                                                           TextTrimming="CharacterEllipsis" MaxWidth="240"/>
+                                            </StackPanel>
                                         </StackPanel>
+                                        <!-- Sichtbarkeits-Toggle -->
                                         <Button Grid.Column="2"
+                                                Command="{Binding $parent[ItemsControl].DataContext.ToggleCalendarVisibilityCommand}"
+                                                CommandParameter="{Binding}"
+                                                Background="Transparent" BorderThickness="0"
+                                                ToolTip.Tip="Sichtbarkeit umschalten" Margin="0,0,4,0">
+                                            <PathIcon Width="14" Height="14"
+                                                      Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                                                      Data="M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,7 12,4.5Z"/>
+                                        </Button>
+                                        <!-- Als Standard -->
+                                        <Button Grid.Column="3"
                                                 Command="{Binding $parent[ItemsControl].DataContext.SetDefaultCalendarCommand}"
                                                 CommandParameter="{Binding}"
                                                 Background="Transparent" BorderThickness="0"
@@ -450,7 +478,8 @@
                                                       Foreground="{DynamicResource ZeTextSecondaryBrush}"
                                                       Data="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/>
                                         </Button>
-                                        <Button Grid.Column="3"
+                                        <!-- Löschen -->
+                                        <Button Grid.Column="4"
                                                 Command="{Binding $parent[ItemsControl].DataContext.DeleteCalendarCommand}"
                                                 CommandParameter="{Binding}"
                                                 Background="Transparent" BorderThickness="0"
@@ -464,8 +493,11 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+
+                    <!-- Neuen Kalender anlegen -->
                     <Border Background="{DynamicResource ZeSurfaceBrush}" CornerRadius="8" Padding="12">
                         <StackPanel>
+                            <!-- Trigger-Button -->
                             <Button IsVisible="{Binding !IsAddingCalendar}"
                                     Command="{Binding BeginAddCalendarCommand}"
                                     Background="Transparent" BorderThickness="0"
@@ -477,17 +509,80 @@
                                                FontSize="13" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
+
+                            <!-- Formular -->
                             <StackPanel IsVisible="{Binding IsAddingCalendar}" Spacing="10">
-                                <StackPanel Spacing="4">
-                                    <TextBlock Text="Name" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="12"/>
-                                    <TextBox Text="{Binding NewCalendarName}" PlaceholderText="Kalendername…"
-                                             CornerRadius="6" Padding="10,6"/>
+
+                                <!-- Name + Farbe -->
+                                <Grid ColumnDefinitions="*,130" >
+                                    <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,8,0">
+                                        <TextBlock Text="Name" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="12"/>
+                                        <TextBox Text="{Binding NewCalendarName}" PlaceholderText="Kalendername…"
+                                                 CornerRadius="6" Padding="10,6"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Spacing="4">
+                                        <TextBlock Text="Farbe (Hex)" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="12"/>
+                                        <TextBox Text="{Binding NewCalendarColor}" PlaceholderText="#00cccc"
+                                                 CornerRadius="6" Padding="10,6"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Typ-Toggle -->
+                                <Grid ColumnDefinitions="160,*">
+                                    <TextBlock Grid.Column="0" Text="CalDAV-Kalender"
+                                               Foreground="{DynamicResource ZeTextPrimaryBrush}"
+                                               FontSize="13" VerticalAlignment="Center"/>
+                                    <ToggleSwitch Grid.Column="1" IsChecked="{Binding IsAddingCalDav}"
+                                                  OnContent="CalDAV" OffContent="Lokal"/>
+                                </Grid>
+
+                                <!-- CalDAV-Felder -->
+                                <StackPanel IsVisible="{Binding IsAddingCalDav}" Spacing="8">
+                                    <Border Background="#0a0a20" CornerRadius="6" Padding="12">
+                                        <StackPanel Spacing="8">
+                                            <TextBlock Text="CALDAV-VERBINDUNG"
+                                                       Foreground="#00cccc" FontSize="11" FontWeight="Bold"/>
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="Kalender-URL" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="12"/>
+                                                <TextBox Text="{Binding NewCalDavUrl}"
+                                                         PlaceholderText="https://baikal.z-evolutions.de/dav.php/calendars/sascha/privat/"
+                                                         CornerRadius="6" Padding="10,6"/>
+                                            </StackPanel>
+                                            <Grid ColumnDefinitions="*,*">
+                                                <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,6,0">
+                                                    <TextBlock Text="Benutzername" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="12"/>
+                                                    <TextBox Text="{Binding NewCalDavUsername}"
+                                                             PlaceholderText="sascha"
+                                                             CornerRadius="6" Padding="10,6"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1" Spacing="4">
+                                                    <TextBlock Text="Passwort" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="12"/>
+                                                    <TextBox Text="{Binding NewCalDavPassword}"
+                                                             PasswordChar="●"
+                                                             CornerRadius="6" Padding="10,6"/>
+                                                </StackPanel>
+                                            </Grid>
+                                            <Grid ColumnDefinitions="160,*">
+                                                <TextBlock Grid.Column="0" Text="Sync-Intervall (Min.)"
+                                                           Foreground="{DynamicResource ZeTextSecondaryBrush}"
+                                                           FontSize="12" VerticalAlignment="Center"/>
+                                                <TextBox Grid.Column="1" Text="{Binding NewSyncInterval}"
+                                                         Width="80" HorizontalAlignment="Left"
+                                                         CornerRadius="6" Padding="10,6"/>
+                                            </Grid>
+                                            <Button Content="Verbindung testen"
+                                                    Command="{Binding TestCalDavConnectionCommand}"
+                                                    IsEnabled="{Binding !IsTestingConnection}"
+                                                    Background="#1a1a3a"
+                                                    Foreground="#00cccc"
+                                                    BorderBrush="#00cccc" BorderThickness="1"
+                                                    CornerRadius="6" Padding="12,7"
+                                                    HorizontalAlignment="Left"/>
+                                        </StackPanel>
+                                    </Border>
                                 </StackPanel>
-                                <StackPanel Spacing="4">
-                                    <TextBlock Text="Farbe (Hex)" Foreground="{DynamicResource ZeTextSecondaryBrush}" FontSize="12"/>
-                                    <TextBox Text="{Binding NewCalendarColor}" PlaceholderText="#00cccc"
-                                             CornerRadius="6" Padding="10,6" Width="120" HorizontalAlignment="Left"/>
-                                </StackPanel>
+
+                                <!-- Buttons -->
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <Button Content="Anlegen" Command="{Binding ConfirmAddCalendarCommand}"
                                             Background="{DynamicResource ZeAccentBrush}"
@@ -501,6 +596,7 @@
                             </StackPanel>
                         </StackPanel>
                     </Border>
+
                     <TextBlock Text="{Binding CalendarStatus}" Foreground="{DynamicResource ZeAccentBrush}" FontSize="12"/>
                 </StackPanel>
 

@@ -214,7 +214,7 @@ public partial class CalendarViewModel : ViewModelBase
         {
             using var scope = App.Services.CreateScope();
             var db = scope.ServiceProvider
-                          .GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
+                        .GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
 
             var allDays = Days.Concat(WeekDays).ToList();
             if (!allDays.Any()) return;
@@ -222,9 +222,19 @@ public partial class CalendarViewModel : ViewModelBase
             var fromUtc = allDays.Min(d => d.Date).ToUniversalTime();
             var toUtc   = allDays.Max(d => d.Date).AddDays(1).ToUniversalTime();
 
-            var events = db.CalendarEvents
-                .Where(e => e.StartUtc < toUtc && e.EndUtc >= fromUtc)
-                .ToList();
+            // Kalenderfarben laden
+            var calendarColors = await Task.Run(() =>
+                db.Calendars
+                .Where(c => c.IsVisible)
+                .ToDictionary(c => c.Id, c => c.Color));
+
+            var visibleCalendarIds = calendarColors.Keys.ToHashSet();
+
+            var events = await Task.Run(() =>
+                db.CalendarEvents
+                .Where(e => e.StartUtc < toUtc && e.EndUtc >= fromUtc
+                        && (e.CalendarId == null || visibleCalendarIds.Contains(e.CalendarId.Value)))
+                .ToList());
 
             foreach (var day in allDays) day.Events.Clear();
 
@@ -234,6 +244,9 @@ public partial class CalendarViewModel : ViewModelBase
                 var day = allDays.FirstOrDefault(d => d.Date.Date == localDate);
                 if (day is null) continue;
 
+                var color = ev.CalendarId.HasValue && calendarColors.TryGetValue(ev.CalendarId.Value, out var c)
+                    ? c : "#5AC8FA";
+
                 day.Events.Add(new CalendarEventViewModel
                 {
                     Id       = ev.Id,
@@ -242,6 +255,7 @@ public partial class CalendarViewModel : ViewModelBase
                     StartUtc = ev.StartUtc,
                     EndUtc   = ev.EndUtc,
                     IsAllDay = ev.IsAllDay,
+                    Color    = color,
                 });
             }
 

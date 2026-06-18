@@ -28,11 +28,18 @@ public partial class AccountItemViewModel : ObservableObject
 
 public partial class CalendarItemViewModel : ObservableObject
 {
-    public Guid   Id        { get; init; }
-    public string Name      { get; init; } = string.Empty;
-    public string Color     { get; init; } = "#3a3aff";
-    public bool   IsDefault { get; init; }
-    public bool   IsVisible { get; init; }
+    public Guid         Id                { get; init; }
+    public string       Name              { get; init; } = string.Empty;
+    public string       Color             { get; init; } = "#3a3aff";
+    public bool         IsDefault         { get; init; }
+    public bool         IsVisible         { get; init; }
+    public CalendarType Type              { get; init; } = CalendarType.Local;
+    public string?      ServerUrl         { get; init; }
+    public string?      Username          { get; init; }
+    public int          SyncIntervalMinutes { get; init; } = 15;
+
+    public bool IsCalDav => Type == CalendarType.CalDav;
+    public string TypeLabel => Type == CalendarType.CalDav ? "CalDAV" : "Lokal";
 }
 
 public partial class SignatureItemViewModel : ObservableObject
@@ -79,8 +86,9 @@ public partial class SettingsViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsKalender));
         OnPropertyChanged(nameof(IsMeineKalender));
         OnPropertyChanged(nameof(IsBenachrichtigungen));
-        if (value == "Verfassen")  LoadSignatures();
-        if (value == "Signaturen") LoadSignaturesForEditor();
+        if (value == "Verfassen")    LoadSignatures();
+        if (value == "Signaturen")   LoadSignaturesForEditor();
+        if (value == "MeineKalender") LoadCalendars();
     }
 
     // ── Konten ───────────────────────────────────────────────────────────────
@@ -129,10 +137,16 @@ public partial class SettingsViewModel : ViewModelBase
     public ObservableCollection<CalendarItemViewModel> Calendars { get; } = [];
 
     [ObservableProperty] private CalendarItemViewModel? _selectedCalendar;
-    [ObservableProperty] private bool   _isAddingCalendar = false;
-    [ObservableProperty] private string _newCalendarName  = string.Empty;
-    [ObservableProperty] private string _newCalendarColor = "#3a3aff";
-    [ObservableProperty] private string _calendarStatus   = string.Empty;
+    [ObservableProperty] private bool   _isAddingCalendar    = false;
+    [ObservableProperty] private bool   _isAddingCalDav      = false;
+    [ObservableProperty] private string _newCalendarName     = string.Empty;
+    [ObservableProperty] private string _newCalendarColor    = "#3a3aff";
+    [ObservableProperty] private string _newCalDavUrl        = string.Empty;
+    [ObservableProperty] private string _newCalDavUsername   = string.Empty;
+    [ObservableProperty] private string _newCalDavPassword   = string.Empty;
+    [ObservableProperty] private int    _newSyncInterval     = 15;
+    [ObservableProperty] private string _calendarStatus      = string.Empty;
+    [ObservableProperty] private bool   _isTestingConnection = false;
 
     // ── Benachrichtigungen ───────────────────────────────────────────────────
     [ObservableProperty] private bool _toastEnabled = true;
@@ -346,12 +360,12 @@ public partial class SettingsViewModel : ViewModelBase
         if (sig is null) return;
         Editor = new SignatureEditorViewModel
         {
-            Id         = sig.Id,
-            AccountId  = sig.AccountId,
-            Name       = sig.Name,
-            BodyHtml   = sig.BodyHtml,
-            BodyText   = sig.BodyText,
-            IsDefault  = sig.IsDefault,
+            Id        = sig.Id,
+            AccountId = sig.AccountId,
+            Name      = sig.Name,
+            BodyHtml  = sig.BodyHtml,
+            BodyText  = sig.BodyText,
+            IsDefault = sig.IsDefault,
         };
         IsEditingSignature = true;
     }
@@ -372,7 +386,7 @@ public partial class SettingsViewModel : ViewModelBase
             BodyText  = string.Empty,
             IsDefault = false,
         };
-        IsEditingSignature    = true;
+        IsEditingSignature       = true;
         SelectedSignatureForEdit = null;
     }
 
@@ -385,7 +399,6 @@ public partial class SettingsViewModel : ViewModelBase
 
         if (Editor.Id is null)
         {
-            // Neu anlegen
             var entity = new Signature
             {
                 AccountId    = Editor.AccountId,
@@ -396,15 +409,11 @@ public partial class SettingsViewModel : ViewModelBase
                 CreatedAtUtc = DateTime.UtcNow
             };
             if (entity.IsDefault)
-            {
-                foreach (var s in db.Signatures.ToList())
-                    s.IsDefault = false;
-            }
+                foreach (var s in db.Signatures.ToList()) s.IsDefault = false;
             db.Add(entity);
         }
         else
         {
-            // Bearbeiten
             var existing = db.Signatures.FirstOrDefault(s => s.Id == Editor.Id);
             if (existing is null) return;
             existing.Name      = Editor.Name.Trim();
@@ -413,14 +422,10 @@ public partial class SettingsViewModel : ViewModelBase
             existing.AccountId = Editor.AccountId;
             if (Editor.IsDefault)
             {
-                foreach (var s in db.Signatures.ToList())
-                    s.IsDefault = false;
+                foreach (var s in db.Signatures.ToList()) s.IsDefault = false;
                 existing.IsDefault = true;
             }
-            else
-            {
-                existing.IsDefault = false;
-            }
+            else existing.IsDefault = false;
         }
 
         await db.SaveChangesAsync();
@@ -471,11 +476,15 @@ public partial class SettingsViewModel : ViewModelBase
         {
             Calendars.Add(new CalendarItemViewModel
             {
-                Id        = c.Id,
-                Name      = c.Name,
-                Color     = c.Color,
-                IsDefault = c.IsDefault,
-                IsVisible = c.IsVisible
+                Id                  = c.Id,
+                Name                = c.Name,
+                Color               = c.Color,
+                IsDefault           = c.IsDefault,
+                IsVisible           = c.IsVisible,
+                Type                = c.Type,
+                ServerUrl           = c.ServerUrl,
+                Username            = c.Username,
+                SyncIntervalMinutes = c.SyncIntervalMinutes
             });
         }
     }
@@ -484,8 +493,42 @@ public partial class SettingsViewModel : ViewModelBase
     private void BeginAddCalendar()
     {
         IsAddingCalendar = true;
+        IsAddingCalDav   = false;
         NewCalendarName  = string.Empty;
         NewCalendarColor = "#3a3aff";
+        NewCalDavUrl     = string.Empty;
+        NewCalDavUsername = string.Empty;
+        NewCalDavPassword = string.Empty;
+        NewSyncInterval  = 15;
+        CalendarStatus   = string.Empty;
+    }
+
+    [RelayCommand]
+    private async Task TestCalDavConnectionAsync()
+    {
+        if (string.IsNullOrWhiteSpace(NewCalDavUrl)
+            || string.IsNullOrWhiteSpace(NewCalDavUsername)
+            || string.IsNullOrWhiteSpace(NewCalDavPassword)
+            || App.Services is null)
+        {
+            CalendarStatus = "⚠ Bitte URL, Benutzername und Passwort angeben.";
+            return;
+        }
+
+        IsTestingConnection = true;
+        CalendarStatus      = "Verbinde…";
+
+        try
+        {
+            using var scope = App.Services.CreateScope();
+            var svc = scope.ServiceProvider.GetRequiredService<ICalendarSyncService>();
+            var error = await svc.TestConnectionAsync(NewCalDavUrl, NewCalDavUsername, NewCalDavPassword);
+            CalendarStatus = error is null ? "✓ Verbindung erfolgreich" : $"✗ {error}";
+        }
+        finally
+        {
+            IsTestingConnection = false;
+        }
     }
 
     [RelayCommand]
@@ -493,19 +536,27 @@ public partial class SettingsViewModel : ViewModelBase
     {
         if (string.IsNullOrWhiteSpace(NewCalendarName) || App.Services is null)
         { IsAddingCalendar = false; return; }
+
         using var scope = App.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<IZeMailDbContext>();
         var account = db.Accounts.FirstOrDefault();
         if (account is null) { IsAddingCalendar = false; return; }
+
         var entity = new Calendar
         {
-            AccountId    = account.Id,
-            Name         = NewCalendarName.Trim(),
-            Color        = NewCalendarColor,
-            IsDefault    = !Calendars.Any(),
-            IsVisible    = true,
-            CreatedAtUtc = DateTime.UtcNow
+            AccountId           = account.Id,
+            Name                = NewCalendarName.Trim(),
+            Color               = NewCalendarColor,
+            IsDefault           = !Calendars.Any(),
+            IsVisible           = true,
+            CreatedAtUtc        = DateTime.UtcNow,
+            Type                = IsAddingCalDav ? CalendarType.CalDav : CalendarType.Local,
+            ServerUrl           = IsAddingCalDav ? NewCalDavUrl.Trim()      : null,
+            Username            = IsAddingCalDav ? NewCalDavUsername.Trim() : null,
+            PasswordEncrypted   = IsAddingCalDav ? NewCalDavPassword        : null,
+            SyncIntervalMinutes = IsAddingCalDav ? NewSyncInterval          : 15,
         };
+
         db.Add(entity);
         await db.SaveChangesAsync();
         IsAddingCalendar = false;
@@ -514,7 +565,11 @@ public partial class SettingsViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void CancelAddCalendar() => IsAddingCalendar = false;
+    private void CancelAddCalendar()
+    {
+        IsAddingCalendar = false;
+        IsAddingCalDav   = false;
+    }
 
     [RelayCommand]
     private async Task DeleteCalendarAsync(CalendarItemViewModel cal)
@@ -540,6 +595,19 @@ public partial class SettingsViewModel : ViewModelBase
             c.IsDefault = c.Id == cal.Id;
         await db.SaveChangesAsync();
         CalendarStatus = $"✓ '{cal.Name}' ist jetzt der Standardkalender";
+        LoadCalendars();
+    }
+
+    [RelayCommand]
+    private async Task ToggleCalendarVisibilityAsync(CalendarItemViewModel cal)
+    {
+        if (App.Services is null) return;
+        using var scope = App.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<IZeMailDbContext>();
+        var entity = db.Calendars.FirstOrDefault(c => c.Id == cal.Id);
+        if (entity is null) return;
+        entity.IsVisible = !entity.IsVisible;
+        await db.SaveChangesAsync();
         LoadCalendars();
     }
 

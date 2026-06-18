@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
 using Avalonia;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,6 +17,8 @@ namespace ZeMail.Desktop;
 class Program
 {
     public static IServiceProvider Services { get; private set; } = null!;
+
+    private static readonly CancellationTokenSource _syncCts = new();
 
     [STAThread]
     public static void Main(string[] args)
@@ -38,7 +41,8 @@ class Program
         sc.AddScoped<IImapSyncService, ImapSyncService>();
         sc.AddScoped<IAccountTestService, AccountTestService>();
         sc.AddScoped<ICalendarSyncService, CalDavSyncService>();
-        sc.AddHostedService<CalendarSyncOrchestrator>();
+
+        sc.AddSingleton<CalendarSyncOrchestrator>();
 
         sc.AddLogging(b => b
             .AddConsole()
@@ -51,7 +55,17 @@ class Program
         var db = scope.ServiceProvider.GetRequiredService<ZeMailDbContext>();
         db.Database.Migrate();
 
+        // CalendarSyncOrchestrator manuell starten
+        Console.WriteLine("[ZE-Mail] Starte CalendarSyncOrchestrator...");
+        var orchestrator = Services.GetRequiredService<CalendarSyncOrchestrator>();
+        var startTask = orchestrator.StartAsync(_syncCts.Token);
+        Console.WriteLine("[ZE-Mail] CalendarSyncOrchestrator gestartet.");
+
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+
+        // Beim Beenden sauber stoppen
+        _syncCts.Cancel();
+        _ = orchestrator.StopAsync(CancellationToken.None);
     }
 
     public static AppBuilder BuildAvaloniaApp()

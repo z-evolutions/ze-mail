@@ -22,18 +22,24 @@ public class CalendarSyncOrchestrator : BackgroundService
     {
         _logger.LogInformation("CalendarSyncOrchestrator gestartet.");
 
+        // Sofort beim Start syncen
+        await SyncDueCalendarsAsync(ct);
+
         while (!ct.IsCancellationRequested)
         {
             try
             {
+                await Task.Delay(CheckInterval, ct);
                 await SyncDueCalendarsAsync(ct);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Fehler im CalendarSyncOrchestrator.");
             }
-
-            await Task.Delay(CheckInterval, ct);
         }
     }
 

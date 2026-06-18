@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
@@ -7,12 +8,23 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
+using ZeMail.Core.Entities;
 using ZeMail.UI.Models;
 using ZeMail.UI.Views;
 
 namespace ZeMail.UI.ViewModels;
 
 public enum CalendarViewMode { Month, Week, Day }
+
+public partial class CalendarSidebarItem : ObservableObject
+{
+    public Guid   Id       { get; init; }
+    public string Name     { get; init; } = string.Empty;
+    public string Color    { get; init; } = "#3a3aff";
+    public bool   IsCalDav { get; init; }
+
+    [ObservableProperty] private bool _isVisible = true;
+}
 
 public partial class CalendarViewModel : ViewModelBase
 {
@@ -40,8 +52,9 @@ public partial class CalendarViewModel : ViewModelBase
 
     private Timer? _clockTimer;
 
-    public ObservableCollection<CalendarDayViewModel> Days     { get; } = [];
-    public ObservableCollection<CalendarDayViewModel> WeekDays { get; } = [];
+    public ObservableCollection<CalendarDayViewModel>   Days       { get; } = [];
+    public ObservableCollection<CalendarDayViewModel>   WeekDays   { get; } = [];
+    public ObservableCollection<CalendarSidebarItem>    Calendars  { get; } = [];
     public ObservableCollection<string> WeekDayHeaders { get; } =
         ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
@@ -62,6 +75,7 @@ public partial class CalendarViewModel : ViewModelBase
             null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
 
         BuildCalendar();
+        LoadCalendars();
         _ = LoadEventsAsync();
     }
 
@@ -71,6 +85,44 @@ public partial class CalendarViewModel : ViewModelBase
         CurrentTimeOffset   = now.Hour * 60.0 + now.Minute;
         ShowCurrentTimeLine = true;
     }
+
+    // ── Kalender-Sidebar ─────────────────────────────────────────────────────
+
+    private void LoadCalendars()
+    {
+        if (App.Services is null) return;
+        using var scope = App.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
+        Calendars.Clear();
+        var list = Task.Run(() => db.Calendars.ToList()).Result;
+        foreach (var c in list)
+        {
+            Calendars.Add(new CalendarSidebarItem
+            {
+                Id        = c.Id,
+                Name      = c.Name,
+                Color     = c.Color,
+                IsCalDav  = c.Type == CalendarType.CalDav,
+                IsVisible = c.IsVisible
+            });
+        }
+    }
+
+    [RelayCommand]
+    private async Task ToggleCalendar(CalendarSidebarItem item)
+    {
+        if (App.Services is null) return;
+        using var scope = App.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
+        var entity = Task.Run(() => db.Calendars.FirstOrDefault(c => c.Id == item.Id)).Result;
+        if (entity is null) return;
+        entity.IsVisible = !entity.IsVisible;
+        item.IsVisible   = entity.IsVisible;
+        await db.SaveChangesAsync();
+        await LoadEventsAsync();
+    }
+
+    // ── Navigation ───────────────────────────────────────────────────────────
 
     [RelayCommand] private void SetMonthView() => ViewMode = CalendarViewMode.Month;
     [RelayCommand] private void SetWeekView()  => ViewMode = CalendarViewMode.Week;
@@ -133,6 +185,8 @@ public partial class CalendarViewModel : ViewModelBase
         if (ev is null) return;
         OpenEventEditor(ev, ev.StartUtc.ToLocalTime());
     }
+
+    // ── Kalender-Aufbau ──────────────────────────────────────────────────────
 
     private void BuildCalendar()
     {
@@ -205,6 +259,63 @@ public partial class CalendarViewModel : ViewModelBase
         SelectedDay = WeekDays[0];
     }
 
+    // ── Überlappungs-Auflösung ────────────────────────────────────────────────
+
+    private static void ResolveOverlaps(IList<CalendarEventViewModel> events)
+    {
+        var timed = events.Where(e => !e.IsAllDay).OrderBy(e => e.StartUtc).ToList();
+        if (timed.Count == 0) return;
+
+        var groups = new List<List<CalendarEventViewModel>>();
+        foreach (var ev in timed)
+        {
+            var placed = false;
+            foreach (var group in groups)
+            {
+                if (group.Any(g => g.StartUtc < ev.EndUtc && g.EndUtc > ev.StartUtc))
+                {
+                    group.Add(ev);
+                    placed = true;
+                    break;
+                }
+            }
+            if (!placed)
+                groups.Add([ev]);
+        }
+
+        foreach (var group in groups)
+        {
+            var columns = new List<List<CalendarEventViewModel>>();
+            foreach (var ev in group.OrderBy(e => e.StartUtc))
+            {
+                var placed = false;
+                foreach (var col in columns)
+                {
+                    if (col.Last().EndUtc <= ev.StartUtc)
+                    {
+                        col.Add(ev);
+                        placed = true;
+                        break;
+                    }
+                }
+                if (!placed)
+                    columns.Add([ev]);
+            }
+
+            int totalCols = columns.Count;
+            for (int ci = 0; ci < totalCols; ci++)
+            {
+                foreach (var ev in columns[ci])
+                {
+                    ev.LeftFraction  = (double)ci / totalCols;
+                    ev.WidthFraction = 1.0 / totalCols;
+                }
+            }
+        }
+    }
+
+    // ── Events laden ─────────────────────────────────────────────────────────
+
     private async Task LoadEventsAsync()
     {
         if (App.Services is null) return;
@@ -214,7 +325,7 @@ public partial class CalendarViewModel : ViewModelBase
         {
             using var scope = App.Services.CreateScope();
             var db = scope.ServiceProvider
-                        .GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
+                          .GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
 
             var allDays = Days.Concat(WeekDays).ToList();
             if (!allDays.Any()) return;
@@ -222,19 +333,26 @@ public partial class CalendarViewModel : ViewModelBase
             var fromUtc = allDays.Min(d => d.Date).ToUniversalTime();
             var toUtc   = allDays.Max(d => d.Date).AddDays(1).ToUniversalTime();
 
-            // Kalenderfarben laden
-            var calendarColors = await Task.Run(() =>
-                db.Calendars
+            var allCalendars = await Task.Run(() => db.Calendars.ToList());
+            var calendarColors    = allCalendars.ToDictionary(c => c.Id, c => c.Color);
+            var visibleCalendarIds = allCalendars
                 .Where(c => c.IsVisible)
-                .ToDictionary(c => c.Id, c => c.Color));
+                .Select(c => c.Id)
+                .ToHashSet();
 
-            var visibleCalendarIds = calendarColors.Keys.ToHashSet();
+            var defaultCalendar = allCalendars.FirstOrDefault(c => c.IsDefault)
+                                ?? allCalendars.FirstOrDefault();
+            var defaultColor   = defaultCalendar?.Color ?? "#5AC8FA";
+            var defaultVisible = defaultCalendar is null || visibleCalendarIds.Contains(defaultCalendar.Id);
 
             var events = await Task.Run(() =>
                 db.CalendarEvents
-                .Where(e => e.StartUtc < toUtc && e.EndUtc >= fromUtc
-                        && (e.CalendarId == null || visibleCalendarIds.Contains(e.CalendarId.Value)))
-                .ToList());
+                  .Where(e => e.StartUtc < toUtc && e.EndUtc >= fromUtc
+                           && (
+                               (e.CalendarId != null && visibleCalendarIds.Contains(e.CalendarId.Value))
+                               || (e.CalendarId == null && defaultVisible)
+                           ))
+                  .ToList());
 
             foreach (var day in allDays) day.Events.Clear();
 
@@ -245,19 +363,23 @@ public partial class CalendarViewModel : ViewModelBase
                 if (day is null) continue;
 
                 var color = ev.CalendarId.HasValue && calendarColors.TryGetValue(ev.CalendarId.Value, out var c)
-                    ? c : "#5AC8FA";
+                    ? c : defaultColor;
 
                 day.Events.Add(new CalendarEventViewModel
                 {
-                    Id       = ev.Id,
-                    Title    = ev.Title,
-                    Location = ev.Location,
-                    StartUtc = ev.StartUtc,
-                    EndUtc   = ev.EndUtc,
-                    IsAllDay = ev.IsAllDay,
-                    Color    = color,
+                    Id         = ev.Id,
+                    Title      = ev.Title,
+                    Location   = ev.Location,
+                    StartUtc   = ev.StartUtc,
+                    EndUtc     = ev.EndUtc,
+                    IsAllDay   = ev.IsAllDay,
+                    Color      = color,
+                    CalendarId = ev.CalendarId,
                 });
             }
+
+            foreach (var day in allDays)
+                ResolveOverlaps(day.Events);
 
             if (SelectedDay is not null)
             {
@@ -274,6 +396,8 @@ public partial class CalendarViewModel : ViewModelBase
         }
     }
 
+    // ── Event-Editor ─────────────────────────────────────────────────────────
+
     private void OpenEventEditor(CalendarEventViewModel? existing, DateTime date)
     {
         if (App.Services is null) return;
@@ -284,15 +408,13 @@ public partial class CalendarViewModel : ViewModelBase
         var account = db.Accounts.FirstOrDefault();
         if (account is null) return;
 
-        // Standarddauer + Zeitslot-Schritte aus Settings
-        var stepMinutes     = App.Settings.DefaultEventDurationMinutes;
+        var stepMinutes = App.Settings.DefaultEventDurationMinutes;
         if (stepMinutes <= 0) stepMinutes = 15;
 
         EventEditorViewModel vm;
 
         if (existing is null)
         {
-            // Startzeit: aktuelle Uhrzeit auf nächsten Slot runden
             var now      = DateTime.Now;
             int totalMin = now.Hour * 60 + now.Minute;
             int snapped  = (int)Math.Ceiling((double)totalMin / stepMinutes) * stepMinutes;
@@ -312,9 +434,12 @@ public partial class CalendarViewModel : ViewModelBase
             vm.InitTimeSlots(stepMinutes);
             vm.SetStartTime(startTime);
             vm.SetEndTime(endTime);
+            vm.LoadCalendars();
         }
         else
         {
+            var existingEvent = db.CalendarEvents.FirstOrDefault(e => e.Id == existing.Id);
+
             vm = new EventEditorViewModel
             {
                 EventId   = existing.Id,
@@ -328,6 +453,7 @@ public partial class CalendarViewModel : ViewModelBase
             vm.InitTimeSlots(stepMinutes);
             vm.SetStartTime(existing.StartUtc.ToLocalTime().TimeOfDay);
             vm.SetEndTime(existing.EndUtc.ToLocalTime().TimeOfDay);
+            vm.LoadCalendars(existingEvent?.CalendarId);
         }
 
         var win = new EventEditorWindow { DataContext = vm };

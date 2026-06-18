@@ -7,19 +7,21 @@ namespace ZeMail.UI.Models;
 
 public partial class CalendarEventViewModel : ObservableObject
 {
-    public Guid     Id       { get; init; }
-    public string   Title    { get; init; } = string.Empty;
-    public string?  Location { get; init; }
-    public DateTime StartUtc { get; init; }
-    public DateTime EndUtc   { get; init; }
-    public bool     IsAllDay { get; init; }
-    public string   Color    { get; init; } = "#5AC8FA";
+    public Guid     Id         { get; init; }
+    public Guid?    CalendarId { get; init; }
+    public string   Title      { get; init; } = string.Empty;
+    public string?  Location   { get; init; }
+    public DateTime StartUtc   { get; init; }
+    public DateTime EndUtc     { get; init; }
+    public bool     IsAllDay   { get; init; }
+    public string   Color      { get; init; } = "#5AC8FA";
 
     public string StartTime    => IsAllDay ? "Ganztägig" : StartUtc.ToLocalTime().ToString("HH:mm");
     public string EndTime      => IsAllDay ? string.Empty : EndUtc.ToLocalTime().ToString("HH:mm");
     public string TimeRange    => IsAllDay ? "Ganztägig" : $"{StartTime} – {EndTime}";
     public string DisplayTitle => IsAllDay ? Title : $"{TimeRange} {Title}";
 
+    // 1px pro Minute, Höhe 1440 = 24h
     public double TopOffset
     {
         get
@@ -36,9 +38,33 @@ public partial class CalendarEventViewModel : ObservableObject
         {
             if (IsAllDay) return 60;
             var duration = (EndUtc - StartUtc).TotalMinutes;
-            return Math.Max(30, duration);
+            return Math.Max(20, duration);
         }
     }
+
+    // ── Überlappungs-Layout ──────────────────────────────────────────────────
+    [ObservableProperty] private double _leftFraction  = 0.0;
+    [ObservableProperty] private double _widthFraction = 1.0;
+
+    partial void OnLeftFractionChanged(double value)
+    {
+        OnPropertyChanged(nameof(LeftOffset));
+        OnPropertyChanged(nameof(EventWidth));
+    }
+
+    partial void OnWidthFractionChanged(double value)
+    {
+        OnPropertyChanged(nameof(LeftOffset));
+        OnPropertyChanged(nameof(EventWidth));
+    }
+
+    // Referenzbreite: wird zur Laufzeit durch ActualWidth ersetzt –
+    // hier als feste Breite die gut zur Tagesansicht passt.
+    // Wochenansicht skaliert automatisch da Canvas in Border liegt.
+    private const double ReferenceWidth = 1000.0;
+
+    public double LeftOffset => LeftFraction  * ReferenceWidth;
+    public double EventWidth => WidthFraction * ReferenceWidth - 2.0;
 
     public Thickness TopMargin => new Thickness(0, TopOffset, 0, 0);
 }

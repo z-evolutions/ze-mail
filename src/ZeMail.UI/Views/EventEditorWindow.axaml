@@ -5,13 +5,12 @@
         x:DataType="vm:EventEditorViewModel"
         Title="{Binding WindowTitle}"
         Icon="/Assets/zemail.ico"
-        Width="500" Height="520"
-        MinWidth="420" MinHeight="440"
+        Width="500" Height="580"
+        MinWidth="420" MinHeight="500"
         WindowStartupLocation="CenterOwner"
         Background="#0f0f23">
 
     <Window.Styles>
-
         <Style Selector="Button.DateBtn">
             <Setter Property="Background"                  Value="#1a1a3a"/>
             <Setter Property="BorderBrush"                 Value="#2a2a5a"/>
@@ -26,7 +25,6 @@
         <Style Selector="Button.DateBtn:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="#22224a"/>
         </Style>
-
         <Style Selector="Button.CalDay">
             <Setter Property="Width"                      Value="30"/>
             <Setter Property="Height"                     Value="30"/>
@@ -42,7 +40,6 @@
         <Style Selector="Button.CalDay:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="#2a2a5a"/>
         </Style>
-
         <Style Selector="Button.CalDaySelected">
             <Setter Property="Width"                      Value="30"/>
             <Setter Property="Height"                     Value="30"/>
@@ -56,7 +53,6 @@
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="VerticalContentAlignment"   Value="Center"/>
         </Style>
-
         <Style Selector="Button.CalDayToday">
             <Setter Property="Width"                      Value="30"/>
             <Setter Property="Height"                     Value="30"/>
@@ -70,11 +66,9 @@
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="VerticalContentAlignment"   Value="Center"/>
         </Style>
-
         <Style Selector="Button.CalDayOtherMonth">
             <Setter Property="Opacity" Value="0.3"/>
         </Style>
-
         <Style Selector="Button.CalNav">
             <Setter Property="Background"      Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -82,7 +76,6 @@
             <Setter Property="Foreground"      Value="#8080c0"/>
             <Setter Property="FontSize"        Value="16"/>
         </Style>
-
         <Style Selector="ComboBox.TimeCombo">
             <Setter Property="Width"           Value="100"/>
             <Setter Property="Height"          Value="34"/>
@@ -94,7 +87,6 @@
             <Setter Property="CornerRadius"    Value="6"/>
             <Setter Property="Padding"         Value="8,0"/>
         </Style>
-
     </Window.Styles>
 
     <Grid RowDefinitions="*,Auto" Margin="20">
@@ -108,6 +100,27 @@
                     <TextBox Text="{Binding Title}"
                              PlaceholderText="Terminbezeichnung"
                              CornerRadius="6" Padding="10,6"/>
+                </StackPanel>
+
+                <!-- Kalender-Auswahl -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Kalender" Foreground="#8080a0" FontSize="12"/>
+                    <ComboBox ItemsSource="{Binding AvailableCalendars}"
+                              SelectedItem="{Binding SelectedCalendar}"
+                              HorizontalAlignment="Stretch">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:CalendarPickerItem">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Ellipse Width="10" Height="10"
+                                             Fill="{Binding Color}"
+                                             VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Name}"
+                                               Foreground="#c0c0ff" FontSize="13"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
                 </StackPanel>
 
                 <!-- Ort -->
@@ -125,7 +138,6 @@
 
                 <!-- ══ START ══ -->
                 <Grid ColumnDefinitions="*,12,Auto">
-                    <!-- Startdatum – Popup nur einmal, immer sichtbar -->
                     <StackPanel Grid.Column="0" Spacing="4">
                         <TextBlock Text="Startdatum" Foreground="#8080a0" FontSize="12"/>
                         <Panel>
@@ -186,8 +198,6 @@
                             </Popup>
                         </Panel>
                     </StackPanel>
-
-                    <!-- Startuhrzeit – nur bei nicht-ganztägig -->
                     <StackPanel Grid.Column="2" Spacing="4"
                                 IsVisible="{Binding !IsAllDay}">
                         <TextBlock Text="Uhrzeit" Foreground="#8080a0" FontSize="12"/>
@@ -199,7 +209,6 @@
 
                 <!-- ══ ENDE ══ -->
                 <Grid ColumnDefinitions="*,12,Auto">
-                    <!-- Enddatum – Popup nur einmal, immer sichtbar -->
                     <StackPanel Grid.Column="0" Spacing="4">
                         <TextBlock Text="Enddatum" Foreground="#8080a0" FontSize="12"/>
                         <Panel>
@@ -260,8 +269,6 @@
                             </Popup>
                         </Panel>
                     </StackPanel>
-
-                    <!-- Enduhrzeit – nur bei nicht-ganztägig -->
                     <StackPanel Grid.Column="2" Spacing="4"
                                 IsVisible="{Binding !IsAllDay}">
                         <TextBlock Text="Uhrzeit" Foreground="#8080a0" FontSize="12"/>

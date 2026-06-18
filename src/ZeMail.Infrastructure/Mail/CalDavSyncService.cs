@@ -259,10 +259,12 @@ public class CalDavSyncService : ICalendarSyncService
 
     private static HttpClient BuildHttpClient(string baseUrl, string username, string password)
     {
-        var handler = new HttpClientHandler { PreAuthenticate = true };
-        var client  = new HttpClient(handler) { BaseAddress = new Uri(baseUrl) };
-        var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", encoded);
+        var handler = new HttpClientHandler
+        {
+            PreAuthenticate = false,
+            Credentials = new NetworkCredential(username, password),
+        };
+        var client = new HttpClient(handler) { BaseAddress = new Uri(baseUrl) };
         return client;
     }
 

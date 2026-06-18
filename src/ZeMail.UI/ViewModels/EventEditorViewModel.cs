@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -8,7 +9,7 @@ using ZeMail.Core.Entities;
 
 namespace ZeMail.UI.ViewModels;
 
-// ── Mini-Kalendertag ─────────────────────────────────────────────────────────
+// ── Mini-Kalendertag ──────────────────────────────────────────────────────────
 public class MiniCalendarDay : ObservableObject
 {
     public DateTime Date           { get; init; }
@@ -24,6 +25,14 @@ public class MiniCalendarDay : ObservableObject
     }
 }
 
+// ── Kalender-Auswahl Item ────────────────────────────────────────────────────
+public class CalendarPickerItem
+{
+    public Guid   Id    { get; init; }
+    public string Name  { get; init; } = string.Empty;
+    public string Color { get; init; } = "#3a3aff";
+}
+
 public partial class EventEditorViewModel : ViewModelBase
 {
     public Guid?  EventId   { get; init; }
@@ -36,6 +45,42 @@ public partial class EventEditorViewModel : ViewModelBase
     [ObservableProperty] private bool   _isAllDay      = false;
     [ObservableProperty] private string _statusMessage = string.Empty;
     [ObservableProperty] private bool   _isSaving      = false;
+
+    // ── Kalender-Auswahl ──────────────────────────────────────────────────────
+    public ObservableCollection<CalendarPickerItem> AvailableCalendars { get; } = [];
+    [ObservableProperty] private CalendarPickerItem? _selectedCalendar;
+
+    public Guid? SelectedCalendarId => SelectedCalendar?.Id;
+
+    public void LoadCalendars(Guid? currentCalendarId = null)
+    {
+        if (App.Services is null) return;
+        using var scope = App.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
+        AvailableCalendars.Clear();
+        var calendars = Task.Run(() => db.Calendars.ToList()).Result;
+        foreach (var c in calendars)
+        {
+            AvailableCalendars.Add(new CalendarPickerItem
+            {
+                Id    = c.Id,
+                Name  = c.Name,
+                Color = c.Color,
+            });
+        }
+        SelectedCalendar = currentCalendarId.HasValue
+            ? AvailableCalendars.FirstOrDefault(c => c.Id == currentCalendarId.Value)
+            : AvailableCalendars.FirstOrDefault(c => c.Id == GetDefaultCalendarId())
+              ?? AvailableCalendars.FirstOrDefault();
+    }
+
+    private Guid? GetDefaultCalendarId()
+    {
+        if (App.Services is null) return null;
+        using var scope = App.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
+        return Task.Run(() => db.Calendars.FirstOrDefault(c => c.IsDefault)?.Id).Result;
+    }
 
     // ── Datum ────────────────────────────────────────────────────────────────
     private DateTime _startDate = DateTime.Today;
@@ -305,6 +350,7 @@ public partial class EventEditorViewModel : ViewModelBase
                 existing.StartUtc    = startUtc;
                 existing.EndUtc      = endUtc;
                 existing.IsAllDay    = IsAllDay;
+                existing.CalendarId  = SelectedCalendarId;
                 await svc.UpdateEventAsync(existing);
             }
             else
@@ -312,6 +358,7 @@ public partial class EventEditorViewModel : ViewModelBase
                 await svc.CreateEventAsync(new CalendarEvent
                 {
                     AccountId   = AccountId,
+                    CalendarId  = SelectedCalendarId,
                     Title       = Title,
                     Description = Description,
                     Location    = Location,

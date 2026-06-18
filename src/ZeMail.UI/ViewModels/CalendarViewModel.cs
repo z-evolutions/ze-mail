@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
@@ -51,6 +52,8 @@ public partial class CalendarViewModel : ViewModelBase
     [ObservableProperty] private bool     _showCurrentTimeLine = false;
 
     private Timer? _clockTimer;
+    private Timer? _refreshTimer;
+    private int    _refreshIntervalMinutes = 1;
 
     public ObservableCollection<CalendarDayViewModel>   Days       { get; } = [];
     public ObservableCollection<CalendarDayViewModel>   WeekDays   { get; } = [];
@@ -77,13 +80,27 @@ public partial class CalendarViewModel : ViewModelBase
         BuildCalendar();
         LoadCalendars();
         _ = LoadEventsAsync();
+        StartRefreshTimer();
+    }
+
+    private void StartRefreshTimer()
+    {
+        _refreshTimer?.Dispose();
+        var interval = TimeSpan.FromMinutes(_refreshIntervalMinutes);
+        _refreshTimer = new Timer(_ =>
+        {
+            Dispatcher.UIThread.Post(() => _ = LoadEventsAsync());
+        }, null, interval, interval);
     }
 
     private void UpdateCurrentTimeLine()
     {
         var now = DateTime.Now;
-        CurrentTimeOffset   = now.Hour * 60.0 + now.Minute;
-        ShowCurrentTimeLine = true;
+        Dispatcher.UIThread.Post(() =>
+        {
+            CurrentTimeOffset   = now.Hour * 60.0 + now.Minute;
+            ShowCurrentTimeLine = true;
+        });
     }
 
     // ── Kalender-Sidebar ─────────────────────────────────────────────────────
@@ -106,6 +123,15 @@ public partial class CalendarViewModel : ViewModelBase
                 IsVisible = c.IsVisible
             });
         }
+
+        var calDavIntervals = list
+            .Where(c => c.Type == CalendarType.CalDav && c.SyncIntervalMinutes > 0)
+            .Select(c => c.SyncIntervalMinutes)
+            .ToList();
+
+        _refreshIntervalMinutes = calDavIntervals.Count > 0
+            ? calDavIntervals.Min()
+            : 1;
     }
 
     [RelayCommand]
@@ -334,7 +360,7 @@ public partial class CalendarViewModel : ViewModelBase
             var toUtc   = allDays.Max(d => d.Date).AddDays(1).ToUniversalTime();
 
             var allCalendars = await Task.Run(() => db.Calendars.ToList());
-            var calendarColors    = allCalendars.ToDictionary(c => c.Id, c => c.Color);
+            var calendarColors     = allCalendars.ToDictionary(c => c.Id, c => c.Color);
             var visibleCalendarIds = allCalendars
                 .Where(c => c.IsVisible)
                 .Select(c => c.Id)
@@ -354,41 +380,45 @@ public partial class CalendarViewModel : ViewModelBase
                            ))
                   .ToList());
 
-            foreach (var day in allDays) day.Events.Clear();
-
-            foreach (var ev in events)
+            // UI-Updates auf dem UI-Thread ausführen
+            await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                var localDate = ev.StartUtc.ToLocalTime().Date;
-                var day = allDays.FirstOrDefault(d => d.Date.Date == localDate);
-                if (day is null) continue;
+                foreach (var day in allDays) day.Events.Clear();
 
-                var color = ev.CalendarId.HasValue && calendarColors.TryGetValue(ev.CalendarId.Value, out var c)
-                    ? c : defaultColor;
-
-                day.Events.Add(new CalendarEventViewModel
+                foreach (var ev in events)
                 {
-                    Id         = ev.Id,
-                    Title      = ev.Title,
-                    Location   = ev.Location,
-                    StartUtc   = ev.StartUtc,
-                    EndUtc     = ev.EndUtc,
-                    IsAllDay   = ev.IsAllDay,
-                    Color      = color,
-                    CalendarId = ev.CalendarId,
-                });
-            }
+                    var localDate = ev.StartUtc.ToLocalTime().Date;
+                    var day = allDays.FirstOrDefault(d => d.Date.Date == localDate);
+                    if (day is null) continue;
 
-            foreach (var day in allDays)
-                ResolveOverlaps(day.Events);
+                    var color = ev.CalendarId.HasValue && calendarColors.TryGetValue(ev.CalendarId.Value, out var c)
+                        ? c : defaultColor;
 
-            if (SelectedDay is not null)
-            {
-                SelectedDayEvents.Clear();
-                foreach (var ev in SelectedDay.Events)
-                    SelectedDayEvents.Add(ev);
-            }
+                    day.Events.Add(new CalendarEventViewModel
+                    {
+                        Id         = ev.Id,
+                        Title      = ev.Title,
+                        Location   = ev.Location,
+                        StartUtc   = ev.StartUtc,
+                        EndUtc     = ev.EndUtc,
+                        IsAllDay   = ev.IsAllDay,
+                        Color      = color,
+                        CalendarId = ev.CalendarId,
+                    });
+                }
 
-            StatusText = string.Empty;
+                foreach (var day in allDays)
+                    ResolveOverlaps(day.Events);
+
+                if (SelectedDay is not null)
+                {
+                    SelectedDayEvents.Clear();
+                    foreach (var ev in SelectedDay.Events)
+                        SelectedDayEvents.Add(ev);
+                }
+
+                StatusText = string.Empty;
+            });
         }
         catch (Exception ex)
         {

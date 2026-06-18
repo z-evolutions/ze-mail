@@ -79,9 +79,22 @@ public class CalDavSyncService : ICalendarSyncService
         }
     }
 
+    // ── Normalisierung ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Normalisiert einen CalDAV-href auf den Dateinamen.
+    /// /dav.php/calendars/sascha/calprivate/test.ics → test.ics
+    /// </summary>
+    private static string NormalizeHref(string href)
+    {
+        var trimmed = href.TrimEnd('/');
+        var idx     = trimmed.LastIndexOf('/');
+        return idx >= 0 ? trimmed[(idx + 1)..] : trimmed;
+    }
+
     // ── Fetch ───────────────────────────────────────────────────────────────
 
-    private static async Task<Dictionary<string, (string Etag, string ICal)>> FetchRemoteItemsAsync(
+    private static async Task<Dictionary<string, (string Etag, string ICal, string FullHref)>> FetchRemoteItemsAsync(
         HttpClient http, string url, CancellationToken ct)
     {
         var reportReq = new HttpRequestMessage(new HttpMethod("REPORT"), url);
@@ -112,7 +125,7 @@ public class CalDavSyncService : ICalendarSyncService
 
     private async Task MergeEventsAsync(
         ZeCalendar calendar,
-        Dictionary<string, (string Etag, string ICal)> remoteItems,
+        Dictionary<string, (string Etag, string ICal, string FullHref)> remoteItems,
         CancellationToken ct)
     {
         var localEvents = await Task.Run(() =>
@@ -120,21 +133,28 @@ public class CalDavSyncService : ICalendarSyncService
                .Where(e => e.CalendarId == calendar.Id)
                .ToList(), ct);
 
-        var localByHref = localEvents
+        // Lokale Events per normalisiertem Dateinamen indizieren
+        var localByFilename = localEvents
             .Where(e => e.CalDavHref != null)
-            .ToDictionary(e => e.CalDavHref!, e => e);
+            .ToDictionary(e => NormalizeHref(e.CalDavHref!), e => e);
 
-        var remoteHrefs = remoteItems.Keys.ToHashSet();
+        var remoteFilenames = remoteItems.Keys.ToHashSet();
 
-        foreach (var local in localByHref.Values.Where(e => !remoteHrefs.Contains(e.CalDavHref!)))
+        // Gelöschte entfernen
+        foreach (var local in localByFilename.Values
+            .Where(e => !remoteFilenames.Contains(NormalizeHref(e.CalDavHref!))))
             _db.Remove(local);
 
-        foreach (var (href, (etag, ical)) in remoteItems)
+        // Neue/geänderte upserten
+        foreach (var (filename, (etag, ical, fullHref)) in remoteItems)
         {
-            if (localByHref.TryGetValue(href, out var existing))
+            if (localByFilename.TryGetValue(filename, out var existing))
             {
+                // ETag identisch → keine Änderung
                 if (existing.CalDavEtag == etag) continue;
                 ApplyICalToEvent(existing, ical, etag);
+                // FullHref aktualisieren falls nötig
+                existing.CalDavHref = fullHref;
             }
             else
             {
@@ -142,7 +162,7 @@ public class CalDavSyncService : ICalendarSyncService
                 {
                     AccountId  = calendar.AccountId,
                     CalendarId = calendar.Id,
-                    CalDavHref = href,
+                    CalDavHref = fullHref,
                 };
                 ApplyICalToEvent(newEvent, ical, etag);
                 _db.Add(newEvent);
@@ -229,16 +249,21 @@ public class CalDavSyncService : ICalendarSyncService
             foreach (var resp in doc.Descendants(Dav + "response"))
             {
                 var href = resp.Element(Dav + "href")?.Value;
-                if (!string.IsNullOrWhiteSpace(href)) result.Add(href);
+                if (!string.IsNullOrWhiteSpace(href)
+                    && href.EndsWith(".ics", StringComparison.OrdinalIgnoreCase))
+                {
+                    result.Add(href);
+                }
             }
         }
         catch { }
         return result;
     }
 
-    private static Dictionary<string, (string Etag, string ICal)> ParseMultigetResponse(string xml)
+    private static Dictionary<string, (string Etag, string ICal, string FullHref)> ParseMultigetResponse(string xml)
     {
-        var result = new Dictionary<string, (string, string)>();
+        // Key = normalisierter Dateiname, Value = (etag, ical, vollständiger href)
+        var result = new Dictionary<string, (string, string, string)>();
         try
         {
             var doc = XDocument.Parse(xml);
@@ -247,8 +272,14 @@ public class CalDavSyncService : ICalendarSyncService
                 var href = resp.Element(Dav + "href")?.Value;
                 var etag = resp.Descendants(Dav + "getetag").FirstOrDefault()?.Value ?? "";
                 var ical = resp.Descendants(CDav + "calendar-data").FirstOrDefault()?.Value ?? "";
-                if (href != null && !string.IsNullOrWhiteSpace(ical))
-                    result[href] = (etag, ical);
+
+                if (href != null
+                    && href.EndsWith(".ics", StringComparison.OrdinalIgnoreCase)
+                    && !string.IsNullOrWhiteSpace(ical))
+                {
+                    var filename = NormalizeHref(href);
+                    result[filename] = (etag, ical, href);
+                }
             }
         }
         catch { }
@@ -262,7 +293,7 @@ public class CalDavSyncService : ICalendarSyncService
         var handler = new HttpClientHandler
         {
             PreAuthenticate = false,
-            Credentials = new NetworkCredential(username, password),
+            Credentials     = new NetworkCredential(username, password),
         };
         var client = new HttpClient(handler) { BaseAddress = new Uri(baseUrl) };
         return client;

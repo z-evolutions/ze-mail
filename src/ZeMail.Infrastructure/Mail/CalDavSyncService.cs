@@ -4,7 +4,9 @@ using System.Text;
 using System.Xml.Linq;
 using Ical.Net;
 using IcalCalendar = Ical.Net.Calendar;
-using IcalEvent    = Ical.Net.CalendarComponents.CalendarEvent;
+using IcalEvent = Ical.Net.CalendarComponents.CalendarEvent;
+using Ical.Net.DataTypes;
+using Ical.Net.Serialization;
 using Microsoft.Extensions.Logging;
 using ZeMail.Core.Entities;
 using ZeMail.Core.Interfaces;
@@ -14,19 +16,19 @@ namespace ZeMail.Infrastructure.Mail;
 
 public class CalDavSyncService : ICalendarSyncService
 {
-    private readonly IZeMailDbContext           _db;
+    private readonly IZeMailDbContext _db;
     private readonly ILogger<CalDavSyncService> _log;
 
-    private static readonly XNamespace Dav  = "DAV:";
+    private static readonly XNamespace Dav = "DAV:";
     private static readonly XNamespace CDav = "urn:ietf:params:xml:ns:caldav";
 
     public CalDavSyncService(IZeMailDbContext db, ILogger<CalDavSyncService> log)
     {
-        _db  = db;
+        _db = db;
         _log = log;
     }
 
-    // ── ICalendarSyncService ────────────────────────────────────────────────
+    // ── ICalendarSyncService ─────────────────────────────────────────────
 
     public async Task SyncCalendarAsync(ZeCalendar calendar, CancellationToken ct = default)
     {
@@ -41,7 +43,7 @@ public class CalDavSyncService : ICalendarSyncService
 
         try
         {
-            var password   = DecryptPassword(calendar.PasswordEncrypted);
+            var password = DecryptPassword(calendar.PasswordEncrypted);
             using var http = BuildHttpClient(calendar.ServerUrl, calendar.Username, password);
 
             var remoteItems = await FetchRemoteItemsAsync(http, calendar.ServerUrl, ct);
@@ -62,8 +64,8 @@ public class CalDavSyncService : ICalendarSyncService
     {
         try
         {
-            using var http  = BuildHttpClient(serverUrl, username, password);
-            var request     = new HttpRequestMessage(new HttpMethod("PROPFIND"), serverUrl);
+            using var http = BuildHttpClient(serverUrl, username, password);
+            var request = new HttpRequestMessage(new HttpMethod("PROPFIND"), serverUrl);
             request.Headers.Add("Depth", "0");
             request.Content = new StringContent(PropfindBody, Encoding.UTF8, "application/xml");
 
@@ -79,20 +81,167 @@ public class CalDavSyncService : ICalendarSyncService
         }
     }
 
-    // ── Normalisierung ───────────────────────────────────────────────────────
-
     /// <summary>
-    /// Normalisiert einen CalDAV-href auf den Dateinamen.
-    /// /dav.php/calendars/sascha/calprivate/test.ics → test.ics
+    /// Lädt ein lokal geändertes Event per CalDAV PUT zum Server hoch.
     /// </summary>
+    public async Task PushEventAsync(CalendarEvent ev, CancellationToken ct = default)
+    {
+        var calendar = ev.Calendar;
+
+        if (calendar is null)
+        {
+            _log.LogWarning("PushEventAsync: Event {Id} hat keinen geladenen Calendar (Navigation Property fehlt).", ev.Id);
+            return;
+        }
+
+        if (calendar.Type != CalendarType.CalDav
+            || string.IsNullOrWhiteSpace(calendar.ServerUrl)
+            || string.IsNullOrWhiteSpace(calendar.Username)
+            || string.IsNullOrWhiteSpace(calendar.PasswordEncrypted))
+        {
+            _log.LogWarning("PushEventAsync: Kalender {Id} ist kein gültiger CalDAV-Kalender.", calendar.Id);
+            return;
+        }
+
+        try
+        {
+            var password = DecryptPassword(calendar.PasswordEncrypted);
+            using var http = BuildHttpClient(calendar.ServerUrl, calendar.Username, password);
+
+            // Falls noch keine href existiert: neue UID-basierte href erzeugen
+            var href = ev.CalDavHref;
+            if (string.IsNullOrWhiteSpace(href))
+            {
+                var fileName = $"{ev.Id}.ics";
+                href = CombineUrl(calendar.ServerUrl, fileName);
+                _log.LogInformation("PushEventAsync: Neue href für Event {Id}: {Href}", ev.Id, href);
+            }
+
+            var icalText = BuildICalFromEvent(ev);
+
+            var request = new HttpRequestMessage(HttpMethod.Put, href)
+            {
+                Content = new StringContent(icalText, Encoding.UTF8, "text/calendar")
+            };
+
+            // Wenn wir bereits einen ETag haben, schicken wir If-Match mit,
+            // damit wir keine zwischenzeitliche Server-Änderung versehentlich überschreiben.
+            if (!string.IsNullOrWhiteSpace(ev.CalDavEtag))
+            {
+                request.Headers.TryAddWithoutValidation("If-Match", ev.CalDavEtag);
+            }
+
+            var response = await http.SendAsync(request, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _log.LogError("PushEventAsync: PUT fehlgeschlagen für Event {Id}: HTTP {Status}", ev.Id, (int)response.StatusCode);
+                return;
+            }
+
+            // Neuen ETag aus Response übernehmen, falls vorhanden
+            var newEtag = response.Headers.ETag?.Tag;
+            if (string.IsNullOrWhiteSpace(newEtag))
+            {
+                // Manche Server liefern den ETag nicht im PUT-Response zurück → nachträglich abfragen
+                newEtag = await FetchEtagAsync(http, href, ct);
+            }
+
+            ev.CalDavHref = href;
+            ev.CalDavEtag = newEtag;
+            ev.ICalRaw = icalText;
+
+            await _db.SaveChangesAsync(ct);
+
+            _log.LogInformation("PushEventAsync: Event {Id} erfolgreich zu CalDAV gepusht. Neuer ETag: {Etag}", ev.Id, newEtag);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "PushEventAsync: Fehler beim Pushen von Event {Id}.", ev.Id);
+        }
+    }
+
+    // ── iCal-Generierung ─────────────────────────────────────────────────
+
+    private static string BuildICalFromEvent(CalendarEvent ev)
+    {
+        var cal = new IcalCalendar();
+
+        var vEvent = new IcalEvent
+        {
+            Uid = ev.Id.ToString(),
+            Summary = ev.Title,
+            Description = ev.Description,
+            Location = ev.Location,
+            DtStamp = new CalDateTime(DateTime.UtcNow, "UTC"),
+        };
+
+        if (ev.IsAllDay)
+        {
+            vEvent.IsAllDay = true;
+            vEvent.DtStart = new CalDateTime(ev.StartUtc.Date);
+            vEvent.DtEnd = new CalDateTime(ev.EndUtc.Date == ev.StartUtc.Date
+                ? ev.EndUtc.Date.AddDays(1)
+                : ev.EndUtc.Date);
+        }
+        else
+        {
+            vEvent.DtStart = new CalDateTime(ev.StartUtc, "UTC");
+            vEvent.DtEnd = new CalDateTime(ev.EndUtc, "UTC");
+        }
+
+        cal.Events.Add(vEvent);
+
+        var serializer = new CalendarSerializer();
+        return serializer.SerializeToString(cal);
+    }
+
+    // ── ETag-Hilfsabfrage ────────────────────────────────────────────────
+
+    private static async Task<string?> FetchEtagAsync(HttpClient http, string href, CancellationToken ct)
+    {
+        try
+        {
+            var request = new HttpRequestMessage(new HttpMethod("PROPFIND"), href);
+            request.Headers.Add("Depth", "0");
+            request.Content = new StringContent("""
+                <?xml version="1.0" encoding="UTF-8"?>
+                <D:propfind xmlns:D="DAV:">
+                  <D:prop>
+                    <D:getetag/>
+                  </D:prop>
+                </D:propfind>
+                """, Encoding.UTF8, "application/xml");
+
+            var response = await http.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode) return null;
+
+            var xml = await response.Content.ReadAsStringAsync(ct);
+            var doc = XDocument.Parse(xml);
+            return doc.Descendants(Dav + "getetag").FirstOrDefault()?.Value;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string CombineUrl(string baseUrl, string fileName)
+    {
+        var trimmed = baseUrl.TrimEnd('/');
+        return $"{trimmed}/{fileName}";
+    }
+
+    // ── Normalisierung ───────────────────────────────────────────────────
+
     private static string NormalizeHref(string href)
     {
         var trimmed = href.TrimEnd('/');
-        var idx     = trimmed.LastIndexOf('/');
+        var idx = trimmed.LastIndexOf('/');
         return idx >= 0 ? trimmed[(idx + 1)..] : trimmed;
     }
 
-    // ── Fetch ───────────────────────────────────────────────────────────────
+    // ── Fetch (Pull) ─────────────────────────────────────────────────────
 
     private static async Task<Dictionary<string, (string Etag, string ICal, string FullHref)>> FetchRemoteItemsAsync(
         HttpClient http, string url, CancellationToken ct)
@@ -105,12 +254,12 @@ public class CalDavSyncService : ICalendarSyncService
         reportResp.EnsureSuccessStatusCode();
 
         var reportXml = await reportResp.Content.ReadAsStringAsync(ct);
-        var hrefs     = ParseHrefsFromReport(reportXml);
+        var hrefs = ParseHrefsFromReport(reportXml);
 
         if (hrefs.Count == 0) return [];
 
         var multigetBody = BuildMultigetBody(hrefs);
-        var multigetReq  = new HttpRequestMessage(new HttpMethod("REPORT"), url);
+        var multigetReq = new HttpRequestMessage(new HttpMethod("REPORT"), url);
         multigetReq.Headers.Add("Depth", "1");
         multigetReq.Content = new StringContent(multigetBody, Encoding.UTF8, "application/xml");
 
@@ -121,7 +270,7 @@ public class CalDavSyncService : ICalendarSyncService
         return ParseMultigetResponse(multiXml);
     }
 
-    // ── Merge ───────────────────────────────────────────────────────────────
+    // ── Merge (Pull) ─────────────────────────────────────────────────────
 
     private async Task MergeEventsAsync(
         ZeCalendar calendar,
@@ -133,19 +282,16 @@ public class CalDavSyncService : ICalendarSyncService
                .Where(e => e.CalendarId == calendar.Id)
                .ToList(), ct);
 
-        // Lokale Events per normalisiertem Dateinamen indizieren
         var localByFilename = localEvents
             .Where(e => e.CalDavHref != null)
             .ToDictionary(e => NormalizeHref(e.CalDavHref!), e => e);
 
         var remoteFilenames = remoteItems.Keys.ToHashSet();
 
-        // Gelöschte entfernen
         foreach (var local in localByFilename.Values
             .Where(e => !remoteFilenames.Contains(NormalizeHref(e.CalDavHref!))))
             _db.Remove(local);
 
-        // Neue/geänderte upserten
         foreach (var (filename, (etag, ical, fullHref)) in remoteItems)
         {
             if (localByFilename.TryGetValue(filename, out var existing))
@@ -153,14 +299,13 @@ public class CalDavSyncService : ICalendarSyncService
                 // ETag identisch → keine Änderung
                 if (existing.CalDavEtag == etag) continue;
                 ApplyICalToEvent(existing, ical, etag);
-                // FullHref aktualisieren falls nötig
                 existing.CalDavHref = fullHref;
             }
             else
             {
                 var newEvent = new CalendarEvent
                 {
-                    AccountId  = calendar.AccountId,
+                    AccountId = calendar.AccountId,
                     CalendarId = calendar.Id,
                     CalDavHref = fullHref,
                 };
@@ -174,16 +319,16 @@ public class CalDavSyncService : ICalendarSyncService
     {
         try
         {
-            var cal    = IcalCalendar.Load(ical);
+            var cal = IcalCalendar.Load(ical);
             var vEvent = cal.Events.OfType<IcalEvent>().FirstOrDefault();
             if (vEvent == null) return;
 
-            ev.Title        = vEvent.Summary     ?? "(kein Titel)";
-            ev.Description  = vEvent.Description;
-            ev.Location     = vEvent.Location;
-            ev.IsAllDay     = vEvent.IsAllDay;
-            ev.ICalRaw      = ical;
-            ev.CalDavEtag   = etag;
+            ev.Title = vEvent.Summary ?? "(kein Titel)";
+            ev.Description = vEvent.Description;
+            ev.Location = vEvent.Location;
+            ev.IsAllDay = vEvent.IsAllDay;
+            ev.ICalRaw = ical;
+            ev.CalDavEtag = etag;
             ev.UpdatedAtUtc = DateTime.UtcNow;
 
             ev.StartUtc = vEvent.DtStart.IsUtc
@@ -198,7 +343,7 @@ public class CalDavSyncService : ICalendarSyncService
         catch { /* ungültiges iCal überspringen */ }
     }
 
-    // ── XML ─────────────────────────────────────────────────────────────────
+    // ── XML ──────────────────────────────────────────────────────────────
 
     private const string PropfindBody = """
         <?xml version="1.0" encoding="UTF-8"?>
@@ -262,7 +407,6 @@ public class CalDavSyncService : ICalendarSyncService
 
     private static Dictionary<string, (string Etag, string ICal, string FullHref)> ParseMultigetResponse(string xml)
     {
-        // Key = normalisierter Dateiname, Value = (etag, ical, vollständiger href)
         var result = new Dictionary<string, (string, string, string)>();
         try
         {
@@ -286,20 +430,20 @@ public class CalDavSyncService : ICalendarSyncService
         return result;
     }
 
-    // ── HTTP ────────────────────────────────────────────────────────────────
+    // ── HTTP ─────────────────────────────────────────────────────────────
 
     private static HttpClient BuildHttpClient(string baseUrl, string username, string password)
     {
         var handler = new HttpClientHandler
         {
             PreAuthenticate = false,
-            Credentials     = new NetworkCredential(username, password),
+            Credentials = new NetworkCredential(username, password),
         };
         var client = new HttpClient(handler) { BaseAddress = new Uri(baseUrl) };
         return client;
     }
 
-    // ── Encryption Stub ──────────────────────────────────────────────────────
+    // ── Encryption Stub ──────────────────────────────────────────────────
     // TODO: Später durch DPAPI/AES ersetzen
     private static string DecryptPassword(string encrypted) => encrypted;
 }

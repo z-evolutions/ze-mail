@@ -2,24 +2,48 @@ using System;
 using System.Collections.ObjectModel;
 using Avalonia;
 using CommunityToolkit.Mvvm.ComponentModel;
-
+ 
 namespace ZeMail.UI.Models;
 
 public partial class CalendarEventViewModel : ObservableObject
 {
-    public Guid     Id         { get; init; }
-    public Guid?    CalendarId { get; init; }
-    public string   Title      { get; init; } = string.Empty;
-    public string?  Location   { get; init; }
-    public DateTime StartUtc   { get; init; }
-    public DateTime EndUtc     { get; init; }
-    public bool     IsAllDay   { get; init; }
-    public string   Color      { get; init; } = "#5AC8FA";
+    public Guid    Id         { get; init; }
+    public Guid?   CalendarId { get; init; }
+    public string  Title      { get; init; } = string.Empty;
+    public string? Location   { get; init; }
+    public bool    IsAllDay   { get; init; }
+    public string  Color      { get; init; } = "#5AC8FA";
+
+    // Mutable für Drag & Drop
+    [ObservableProperty] private DateTime _startUtc;
+    [ObservableProperty] private DateTime _endUtc;
+
+    // Drag-State
+    [ObservableProperty] private bool   _isDragging   = false;
+    [ObservableProperty] private double _dragOpacity  = 1.0;
 
     public string StartTime    => IsAllDay ? "Ganztägig" : StartUtc.ToLocalTime().ToString("HH:mm");
     public string EndTime      => IsAllDay ? string.Empty : EndUtc.ToLocalTime().ToString("HH:mm");
     public string TimeRange    => IsAllDay ? "Ganztägig" : $"{StartTime} – {EndTime}";
     public string DisplayTitle => IsAllDay ? Title : $"{TimeRange} {Title}";
+
+    partial void OnStartUtcChanged(DateTime value)
+    {
+        OnPropertyChanged(nameof(StartTime));
+        OnPropertyChanged(nameof(TimeRange));
+        OnPropertyChanged(nameof(DisplayTitle));
+        OnPropertyChanged(nameof(TopOffset));
+        OnPropertyChanged(nameof(EventHeight));
+        OnPropertyChanged(nameof(TopMargin));
+    }
+
+    partial void OnEndUtcChanged(DateTime value)
+    {
+        OnPropertyChanged(nameof(EndTime));
+        OnPropertyChanged(nameof(TimeRange));
+        OnPropertyChanged(nameof(DisplayTitle));
+        OnPropertyChanged(nameof(EventHeight));
+    }
 
     // 1px pro Minute, Höhe 1440 = 24h
     public double TopOffset
@@ -42,7 +66,7 @@ public partial class CalendarEventViewModel : ObservableObject
         }
     }
 
-    // ── Überlappungs-Layout ──────────────────────────────────────────────────
+    // ── Überlappungs-Layout ──────────────────────────────────────────────
     [ObservableProperty] private double _leftFraction  = 0.0;
     [ObservableProperty] private double _widthFraction = 1.0;
 
@@ -58,15 +82,10 @@ public partial class CalendarEventViewModel : ObservableObject
         OnPropertyChanged(nameof(EventWidth));
     }
 
-    // Referenzbreite: wird zur Laufzeit durch ActualWidth ersetzt –
-    // hier als feste Breite die gut zur Tagesansicht passt.
-    // Wochenansicht skaliert automatisch da Canvas in Border liegt.
     private const double ReferenceWidth = 1000.0;
-
     public double LeftOffset => LeftFraction  * ReferenceWidth;
     public double EventWidth => WidthFraction * ReferenceWidth - 2.0;
-
-    public Thickness TopMargin => new Thickness(0, TopOffset, 0, 0);
+    public Thickness TopMargin => new(0, TopOffset, 0, 0);
 }
 
 public partial class CalendarDayViewModel : ObservableObject

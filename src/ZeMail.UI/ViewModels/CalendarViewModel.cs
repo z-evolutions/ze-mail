@@ -19,7 +19,7 @@ public enum CalendarViewMode { Month, Week, Day }
 
 public partial class CalendarSidebarItem : ObservableObject
 {
-    public Guid   Id       { get; init; }
+    public Guid   Id       { get; init; } 
     public string Name     { get; init; } = string.Empty;
     public string Color    { get; init; } = "#3a3aff";
     public bool   IsCalDav { get; init; }
@@ -68,8 +68,13 @@ public partial class CalendarViewModel : ViewModelBase
 
     [ObservableProperty] private string _statusText = string.Empty;
 
+    // Callback für Drag-Drop aus Controls
+    public Func<CalendarEventDragState, Task> DropCompletedHandler { get; }
+
     public CalendarViewModel()
     {
+        DropCompletedHandler = UpdateEventAfterDragAsync;
+
         for (int h = 0; h < 24; h++)
             HourLabels.Add($"{h:00}:00");
 
@@ -103,7 +108,73 @@ public partial class CalendarViewModel : ViewModelBase
         });
     }
 
-    // ── Kalender-Sidebar ─────────────────────────────────────────────────────
+    // ── Drag & Drop ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Wird nach erfolgreichem Drop aufgerufen.
+    /// Aktualisiert DB via ICalendarService + löst UI-Refresh aus.
+    /// </summary>
+    private async Task UpdateEventAfterDragAsync(CalendarEventDragState state)
+    {
+        if (App.Services is null) return;
+
+        try
+        {
+            StatusText = "Termin wird gespeichert…";
+
+            using var scope = App.Services.CreateScope();
+            var db = scope.ServiceProvider
+                          .GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
+
+            var entity = await Task.Run(() =>
+                db.CalendarEvents.FirstOrDefault(e => e.Id == state.Event.Id));
+
+            if (entity is null)
+            {
+                StatusText = "Fehler: Termin nicht gefunden.";
+                return;
+            }
+
+            entity.StartUtc = state.PreviewStartUtc;
+            entity.EndUtc = state.PreviewEndUtc;
+            entity.UpdatedAtUtc = DateTime.UtcNow;
+
+            await db.SaveChangesAsync();
+
+            // Zugehörigen Kalender separat laden (kein Include nötig, IQueryable nur in Core)
+            if (entity.CalendarId.HasValue)
+            {
+                var calendar = await Task.Run(() =>
+                    db.Calendars.FirstOrDefault(c => c.Id == entity.CalendarId.Value));
+
+                if (calendar?.Type == ZeMail.Core.Entities.CalendarType.CalDav)
+                {
+                    entity.Calendar = calendar; // Navigation Property manuell setzen für PushEventAsync
+
+                    var syncService = scope.ServiceProvider
+                                            .GetRequiredService<ZeMail.Core.Interfaces.ICalendarSyncService>();
+                    await syncService.PushEventAsync(entity);
+                }
+            }
+
+            StatusText = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Fehler beim Speichern: {ex.Message}";
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                state.Event.StartUtc = state.OriginalStartUtc;
+                state.Event.EndUtc = state.OriginalEndUtc;
+            });
+        }
+
+        await Task.Delay(300);
+        await LoadEventsAsync();
+    }
+
+    // ── Kalender-Sidebar ─────────────────────────────────────────────────
 
     private void LoadCalendars()
     {
@@ -148,7 +219,7 @@ public partial class CalendarViewModel : ViewModelBase
         await LoadEventsAsync();
     }
 
-    // ── Navigation ───────────────────────────────────────────────────────────
+    // ── Navigation ───────────────────────────────────────────────────────
 
     [RelayCommand] private void SetMonthView() => ViewMode = CalendarViewMode.Month;
     [RelayCommand] private void SetWeekView()  => ViewMode = CalendarViewMode.Week;
@@ -212,7 +283,7 @@ public partial class CalendarViewModel : ViewModelBase
         OpenEventEditor(ev, ev.StartUtc.ToLocalTime());
     }
 
-    // ── Kalender-Aufbau ──────────────────────────────────────────────────────
+    // ── Kalender-Aufbau ──────────────────────────────────────────────────
 
     private void BuildCalendar()
     {
@@ -285,7 +356,7 @@ public partial class CalendarViewModel : ViewModelBase
         SelectedDay = WeekDays[0];
     }
 
-    // ── Überlappungs-Auflösung ────────────────────────────────────────────────
+    // ── Überlappungs-Auflösung ───────────────────────────────────────────
 
     private static void ResolveOverlaps(IList<CalendarEventViewModel> events)
     {
@@ -340,7 +411,7 @@ public partial class CalendarViewModel : ViewModelBase
         }
     }
 
-    // ── Events laden ─────────────────────────────────────────────────────────
+    // ── Events laden ─────────────────────────────────────────────────────
 
     private async Task LoadEventsAsync()
     {
@@ -380,7 +451,6 @@ public partial class CalendarViewModel : ViewModelBase
                            ))
                   .ToList());
 
-            // UI-Updates auf dem UI-Thread ausführen
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 foreach (var day in allDays) day.Events.Clear();
@@ -426,7 +496,7 @@ public partial class CalendarViewModel : ViewModelBase
         }
     }
 
-    // ── Event-Editor ─────────────────────────────────────────────────────────
+    // ── Event-Editor ─────────────────────────────────────────────────────
 
     private void OpenEventEditor(CalendarEventViewModel? existing, DateTime date)
     {

@@ -76,11 +76,8 @@ public class CalendarWeekGrid : Panel
 
     private void Rebuild()
     {
-        CalendarDayPanel.Log($"[WeekGrid.Rebuild] Wird ausgeführt. WeekDays-Anzahl={WeekDays?.Count ?? -1}");
-
         if (_pointerHandlersAttached)
         {
-            // FIX: PointerPressed-Handler nicht mehr nötig (kein Bubbling-Workaround mehr)
             PointerMoved -= OnWeekGridPointerMoved;
             PointerReleased -= OnWeekGridPointerReleased;
             PointerCaptureLost -= OnCaptureLost;
@@ -109,7 +106,6 @@ public class CalendarWeekGrid : Panel
             };
 
             var capturedIndex = i;
-            // FIX: Callback bekommt jetzt direkt die PointerPressedEventArgs vom Panel mit
             panel.DragStartedCallback = (_, state, pressArgs) =>
                 OnColumnDragStarted(capturedIndex, state, pressArgs);
 
@@ -117,35 +113,25 @@ public class CalendarWeekGrid : Panel
             Children.Add(panel);
         }
 
-        // FIX: PointerPressed-Subscription auf WeekGrid-Ebene entfernt – feuert ohnehin nie
-        // wegen e.Handled=true im Kind-Control. Capture läuft jetzt direkt über den
-        // PointerPressedEventArgs, den das Panel im DragStartedCallback mitgibt.
         PointerMoved += OnWeekGridPointerMoved;
         PointerReleased += OnWeekGridPointerReleased;
         PointerCaptureLost += OnCaptureLost;
         _pointerHandlersAttached = true;
-
-        CalendarDayPanel.Log($"[WeekGrid.Rebuild] Fertig. {count} Spalten erzeugt, Pointer-Handler attached={_pointerHandlersAttached}");
     }
 
     // ── Drag-Koordination ────────────────────────────────────────────────
 
     private void OnColumnDragStarted(int colIndex, CalendarEventDragState state, PointerPressedEventArgs pressArgs)
     {
-        CalendarDayPanel.Log($"[WeekGrid] DragStarted column={colIndex}");
         _activeDrag = state;
         _currentDragColumn = colIndex;
 
-        // FIX: Capture direkt vom übergebenen PressArgs setzen, kein Bubbling nötig
         pressArgs.Pointer.Capture(this);
-        CalendarDayPanel.Log("[WeekGrid] Capture auf WeekGrid gesetzt (direkt vom PressArgs)");
     }
 
     private void OnWeekGridPointerMoved(object? sender, PointerEventArgs e)
     {
         if (_activeDrag is null) return;
-
-        CalendarDayPanel.Log($"[WeekGrid] PointerMoved X={e.GetPosition(this).X:F0} Y={e.GetPosition(this).Y:F0}");
 
         if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
         {
@@ -164,8 +150,6 @@ public class CalendarWeekGrid : Panel
 
         if (newColIdx != _currentDragColumn)
         {
-            CalendarDayPanel.Log($"[WeekGrid] Spaltenwechsel {_currentDragColumn} -> {newColIdx}");
-
             if (_currentDragColumn >= 0 && _currentDragColumn < _columns.Length)
                 _columns[_currentDragColumn]?.ReceiveDragLeave();
 
@@ -195,8 +179,6 @@ public class CalendarWeekGrid : Panel
 
     private void OnWeekGridPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
-        CalendarDayPanel.Log($"[WeekGrid] PointerReleased _activeDrag is null: {_activeDrag is null}");
-
         if (_activeDrag is null) return;
 
         var posInGrid = e.GetPosition(this);
@@ -224,7 +206,6 @@ public class CalendarWeekGrid : Panel
         _activeDrag = null;
         _currentDragColumn = -1;
 
-        CalendarDayPanel.Log($"[WeekGrid] Commit -> OnDropCompleted is null: {OnDropCompleted is null}");
         if (OnDropCompleted is not null)
             _ = OnDropCompleted(state);
 
@@ -232,10 +213,7 @@ public class CalendarWeekGrid : Panel
     }
 
     private void OnCaptureLost(object? sender, PointerCaptureLostEventArgs e)
-    {
-        CalendarDayPanel.Log("[WeekGrid] OnCaptureLost gefeuert!");
-        CancelActiveDrag();
-    }
+        => CancelActiveDrag();
 
     private void CancelActiveDrag()
     {

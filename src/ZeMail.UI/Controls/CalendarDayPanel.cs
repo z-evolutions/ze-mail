@@ -14,18 +14,6 @@ namespace ZeMail.UI.Controls;
 
 public class CalendarDayPanel : Panel
 {
-    // ── Debug-Logging (temporär) ─────────────────────────────────────────
-    internal static void Log(string msg)
-    {
-        try
-        {
-            System.IO.File.AppendAllText(
-                System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "zemail_debug.log"),
-                $"{DateTime.Now:HH:mm:ss.fff} {msg}\n");
-        }
-        catch { }
-    }
-
     // ── Styled Properties ────────────────────────────────────────────────
 
     public static readonly StyledProperty<IEnumerable?> EventsProperty =
@@ -77,9 +65,9 @@ public class CalendarDayPanel : Panel
     public Func<CalendarEventDragState, Task>? OnDropCompleted { get; set; }
     public Action<CalendarEventViewModel>? EditRequested { get; set; }
 
-    // FIX: Callback bekommt jetzt auch die PointerPressedEventArgs mit,
-    // damit das WeekGrid das Pointer-Capture direkt setzen kann
-    // (Bubbling von PointerPressed zum Parent findet wegen e.Handled=true nicht statt)
+    // Callback bekommt die PointerPressedEventArgs mit, damit das WeekGrid
+    // das Pointer-Capture direkt setzen kann (Bubbling von PointerPressed
+    // zum Parent findet wegen e.Handled=true nicht statt)
     public Action<CalendarDayPanel, CalendarEventDragState, PointerPressedEventArgs>? DragStartedCallback { get; set; }
 
     // ── Control-Cache ─────────────────────────────────────────────────────
@@ -152,7 +140,6 @@ public class CalendarDayPanel : Panel
                     child.DataContext = ev;
                     AttachPointerHandlers(child, ev);
                     _controlCache[ev.Id] = child;
-                    Log($"[SyncChildren] Neues Control erzeugt für '{ev.Title}' (Col={ColumnIndex})");
                 }
             }
         }
@@ -195,13 +182,10 @@ public class CalendarDayPanel : Panel
         child.PointerMoved += (_, e) => OnEventPointerMoved(ev, e);
         child.PointerReleased += (_, e) => OnEventPointerReleased(ev, e);
         child.PointerCaptureLost += (_, _) => CancelDrag();
-        Log($"[AttachPointerHandlers] Handler registriert für '{ev.Title}' (Col={ColumnIndex})");
     }
 
     private void OnEventPointerPressed(Control child, CalendarEventViewModel ev, PointerPressedEventArgs e)
     {
-        Log($"[Pressed] '{ev.Title}' Col={ColumnIndex} IsLeftButton={e.GetCurrentPoint(child).Properties.IsLeftButtonPressed}");
-
         if (!e.GetCurrentPoint(child).Properties.IsLeftButtonPressed) return;
 
         _pressPosition = e.GetPosition(this);
@@ -223,8 +207,6 @@ public class CalendarDayPanel : Panel
             mode = DragMode.ResizeBottom;
         else
             mode = DragMode.Move;
-
-        Log($"[Pressed] Mode={mode} posInChild.Y={posInChild.Y:F1} childHeight={child.Bounds.Height:F1}");
 
         var state = new CalendarEventDragState
         {
@@ -249,13 +231,12 @@ public class CalendarDayPanel : Panel
 
         if (DragStartedCallback is not null)
         {
-            Log("[Pressed] DragStartedCallback wird aufgerufen (WeekGrid-Modus)");
-            // FIX: PointerPressedEventArgs direkt mitgeben statt auf Bubbling zu warten
+            // Wochenansicht: PointerPressedEventArgs direkt mitgeben statt auf Bubbling zu warten
             DragStartedCallback.Invoke(this, state, e);
         }
         else
         {
-            Log("[Pressed] Kein DragStartedCallback -> lokales Capture (Day-Modus)");
+            // Tagesansicht: Panel captured selbst
             e.Pointer.Capture(child);
         }
 
@@ -269,7 +250,6 @@ public class CalendarDayPanel : Panel
         if (!_isLocalDragOwner) return;
         if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
         {
-            Log("[Moved] LeftButton nicht mehr gedrückt -> CancelDrag");
             CancelDrag();
             return;
         }
@@ -284,7 +264,6 @@ public class CalendarDayPanel : Panel
 
             _isDragging = true;
             ev.DragOpacity = 0.35;
-            Log($"[Moved] Drag gestartet! delta=({delta.X:F1},{delta.Y:F1})");
         }
 
         UpdateDragPreview(state, posInPanel);
@@ -294,8 +273,6 @@ public class CalendarDayPanel : Panel
 
     private void OnEventPointerReleased(CalendarEventViewModel ev, PointerReleasedEventArgs e)
     {
-        Log($"[Released] '{ev.Title}' _isDragging={_isDragging} _isLocalDragOwner={_isLocalDragOwner}");
-
         var state = DragState;
 
         if (!_isDragging)
@@ -307,16 +284,8 @@ public class CalendarDayPanel : Panel
             return;
         }
 
-        if (state is null || state.Event.Id != ev.Id)
-        {
-            Log("[Released] state ist null oder Event-Id stimmt nicht -> Abbruch ohne Commit");
-            return;
-        }
-        if (!_isLocalDragOwner)
-        {
-            Log("[Released] Nicht lokaler Drag-Owner -> kein Commit hier (WeekGrid macht das)");
-            return;
-        }
+        if (state is null || state.Event.Id != ev.Id) return;
+        if (!_isLocalDragOwner) return;
 
         CommitDrop(state);
         e.Handled = true;
@@ -386,8 +355,6 @@ public class CalendarDayPanel : Panel
 
     private void CommitDrop(CalendarEventDragState state)
     {
-        Log($"[CommitDrop] '{state.Event.Title}' Preview={state.PreviewStartUtc:yyyy-MM-dd HH:mm}-{state.PreviewEndUtc:HH:mm} Original={state.OriginalStartUtc:yyyy-MM-dd HH:mm}-{state.OriginalEndUtc:HH:mm}");
-
         HideGhost();
         state.Event.DragOpacity = 1.0;
         state.Event.StartUtc = state.PreviewStartUtc;
@@ -397,12 +364,8 @@ public class CalendarDayPanel : Panel
         _isLocalDragOwner = false;
         _isDragging = false;
 
-        Log($"[CommitDrop] OnDropCompleted is null: {OnDropCompleted is null}");
         if (OnDropCompleted is not null)
-        {
-            Log("[CommitDrop] Rufe OnDropCompleted auf...");
             _ = OnDropCompleted(state);
-        }
     }
 
     public void CancelDrag()
@@ -410,7 +373,6 @@ public class CalendarDayPanel : Panel
         var state = DragState;
         if (state is not null)
         {
-            Log($"[CancelDrag] '{state.Event.Title}' wird zurückgesetzt");
             HideGhost();
             state.Event.StartUtc = state.OriginalStartUtc;
             state.Event.EndUtc = state.OriginalEndUtc;
@@ -426,7 +388,6 @@ public class CalendarDayPanel : Panel
 
     public void TakeOverDrag(CalendarEventDragState state)
     {
-        Log($"[TakeOverDrag] Col={ColumnIndex} übernimmt '{state.Event.Title}'");
         _isLocalDragOwner = false;
         DragState = state;
         state.GhostDayIndex = ColumnIndex;

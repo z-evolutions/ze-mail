@@ -148,7 +148,12 @@ public class CalendarWeekGrid : Panel
             return;
         }
 
-        if (newColIdx != _currentDragColumn)
+        // Spaltenwechsel (Tag wechseln) ist nur für Move ein gültiger Vorgang.
+        // Resize verändert nur Start- oder Endzeit innerhalb derselben Spalte;
+        // ein Spaltenwechsel während Resize wird ignoriert, damit die Y-basierte
+        // Resize-Berechnung in CalendarDayPanel nicht durch einen Tageswechsel
+        // verfälscht wird.
+        if (newColIdx != _currentDragColumn && _activeDrag.Mode == DragMode.Move)
         {
             if (_currentDragColumn >= 0 && _currentDragColumn < _columns.Length)
                 _columns[_currentDragColumn]?.ReceiveDragLeave();
@@ -170,9 +175,10 @@ public class CalendarWeekGrid : Panel
             _columns[newColIdx].TakeOverDrag(_activeDrag);
         }
 
-        var colLeft = GetColumnLeft(newColIdx);
+        var activeColIdx = _activeDrag.Mode == DragMode.Move ? newColIdx : _currentDragColumn;
+        var colLeft = GetColumnLeft(activeColIdx);
         var posInPanel = new Point(posInGrid.X - colLeft, posInGrid.Y);
-        _columns[newColIdx].UpdateExternalDrag(_activeDrag, posInPanel);
+        _columns[activeColIdx].UpdateExternalDrag(_activeDrag, posInPanel);
 
         e.Handled = true;
     }
@@ -181,21 +187,31 @@ public class CalendarWeekGrid : Panel
     {
         if (_activeDrag is null) return;
 
-        var posInGrid = e.GetPosition(this);
-        var dropColIdx = GetColumnAtX(posInGrid.X);
+        var state = _activeDrag;
 
-        var days = WeekDays;
-        if (days is not null && dropColIdx >= 0 && dropColIdx < days.Count)
+        // Spaltenwechsel beim Drop nur für Move neu berechnen. Bei ResizeTop/
+        // ResizeBottom hat CalendarDayPanel.UpdateDragPreview bereits die
+        // korrekten PreviewStartUtc/PreviewEndUtc-Werte gesetzt (Start ODER Ende
+        // verändert, je nach Modus) – das hier erneut zu überschreiben hat bisher
+        // bei ResizeTop die Dauer fälschlich auf die Originaldauer zurückgesetzt
+        // und bei ResizeBottom das Ende komplett auf den Originalwert zurückgesprungen.
+        if (state.Mode == DragMode.Move)
         {
-            var duration = (_activeDrag.OriginalEndUtc - _activeDrag.OriginalStartUtc).TotalMinutes;
-            var timeOfDay = _activeDrag.PreviewStartUtc.ToLocalTime().TimeOfDay;
-            var newStartLocal = days[dropColIdx].Date.Date.Add(timeOfDay);
-            _activeDrag.PreviewStartUtc = newStartLocal.ToUniversalTime();
-            _activeDrag.PreviewEndUtc = _activeDrag.PreviewStartUtc.AddMinutes(duration);
-            _activeDrag.PreviewDayIndex = dropColIdx;
+            var posInGrid = e.GetPosition(this);
+            var dropColIdx = GetColumnAtX(posInGrid.X);
+
+            var days = WeekDays;
+            if (days is not null && dropColIdx >= 0 && dropColIdx < days.Count)
+            {
+                var duration = (state.OriginalEndUtc - state.OriginalStartUtc).TotalMinutes;
+                var timeOfDay = state.PreviewStartUtc.ToLocalTime().TimeOfDay;
+                var newStartLocal = days[dropColIdx].Date.Date.Add(timeOfDay);
+                state.PreviewStartUtc = newStartLocal.ToUniversalTime();
+                state.PreviewEndUtc = state.PreviewStartUtc.AddMinutes(duration);
+                state.PreviewDayIndex = dropColIdx;
+            }
         }
 
-        var state = _activeDrag;
         state.Event.StartUtc = state.PreviewStartUtc;
         state.Event.EndUtc = state.PreviewEndUtc;
         state.Event.DragOpacity = 1.0;

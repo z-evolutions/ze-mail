@@ -83,6 +83,10 @@ public class CalendarDayPanel : Panel
     private const double ResizeHandleSize = 8.0;
     private const double SnapMinutes = 15.0;
 
+    // Cursors werden einmalig gecacht statt bei jedem Hover neu erzeugt
+    private static readonly Cursor ResizeCursor = new(StandardCursorType.SizeNorthSouth);
+    private static readonly Cursor MoveCursor = new(StandardCursorType.Hand);
+
     // ── Statische Initialisierung ────────────────────────────────────────
 
     static CalendarDayPanel()
@@ -179,9 +183,10 @@ public class CalendarDayPanel : Panel
     private void AttachPointerHandlers(Control child, CalendarEventViewModel ev)
     {
         child.PointerPressed += (_, e) => OnEventPointerPressed(child, ev, e);
-        child.PointerMoved += (_, e) => OnEventPointerMoved(ev, e);
+        child.PointerMoved += (_, e) => OnEventPointerMoved(child, ev, e);
         child.PointerReleased += (_, e) => OnEventPointerReleased(ev, e);
         child.PointerCaptureLost += (_, _) => CancelDrag();
+        child.PointerExited += (_, _) => OnEventPointerExited(child);
     }
 
     private void OnEventPointerPressed(Control child, CalendarEventViewModel ev, PointerPressedEventArgs e)
@@ -207,6 +212,10 @@ public class CalendarDayPanel : Panel
             mode = DragMode.ResizeBottom;
         else
             mode = DragMode.Move;
+
+        // Cursor sofort beim Press auf den aktiven Modus fixieren, damit er
+        // während des gesamten Drags stabil bleibt (kein Flackern durch Hover-Logik)
+        child.Cursor = CursorForMode(mode);
 
         var state = new CalendarEventDragState
         {
@@ -243,11 +252,21 @@ public class CalendarDayPanel : Panel
         e.Handled = true;
     }
 
-    private void OnEventPointerMoved(CalendarEventViewModel ev, PointerEventArgs e)
+    private void OnEventPointerMoved(Control child, CalendarEventViewModel ev, PointerEventArgs e)
     {
         var state = DragState;
-        if (state is null || state.Event.Id != ev.Id) return;
-        if (!_isLocalDragOwner) return;
+
+        // Kein aktiver Drag dieses Events → reines Hover-Feedback für den Cursor.
+        // Greift nur, wenn die Maustaste NICHT gedrückt ist (sonst würde ein
+        // Drag, der das Capture an ein anderes Element verloren hat, hier
+        // fälschlich den Hover-Cursor setzen).
+        if (state is null || state.Event.Id != ev.Id || !_isLocalDragOwner)
+        {
+            if (!e.GetCurrentPoint(child).Properties.IsLeftButtonPressed)
+                UpdateHoverCursor(child, ev, e);
+            return;
+        }
+
         if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
         {
             CancelDrag();
@@ -290,6 +309,44 @@ public class CalendarDayPanel : Panel
         CommitDrop(state);
         e.Handled = true;
     }
+
+    private void OnEventPointerExited(Control child)
+    {
+        // Cursor nur zurücksetzen, wenn kein Drag mit diesem Child gerade läuft.
+        // Während eines aktiven Drags soll der fixierte Resize-/Move-Cursor bleiben,
+        // auch wenn die Maus kurz aus den ursprünglichen Bounds des Events wandert.
+        if (_isDragging) return;
+        child.Cursor = Cursor.Default;
+    }
+
+    // ── Cursor-Hover-Feedback (ohne aktiven Drag) ───────────────────────
+
+    private void UpdateHoverCursor(Control child, CalendarEventViewModel ev, PointerEventArgs e)
+    {
+        if (ev.IsAllDay)
+        {
+            child.Cursor = MoveCursor;
+            return;
+        }
+
+        var posInChild = e.GetPosition(child);
+        DragMode mode;
+        if (posInChild.Y <= ResizeHandleSize)
+            mode = DragMode.ResizeTop;
+        else if (posInChild.Y >= child.Bounds.Height - ResizeHandleSize)
+            mode = DragMode.ResizeBottom;
+        else
+            mode = DragMode.Move;
+
+        child.Cursor = CursorForMode(mode);
+    }
+
+    private static Cursor CursorForMode(DragMode mode) => mode switch
+    {
+        DragMode.ResizeTop => ResizeCursor,
+        DragMode.ResizeBottom => ResizeCursor,
+        _ => MoveCursor,
+    };
 
     // ── Drag-Logik ───────────────────────────────────────────────────────
 
@@ -364,6 +421,9 @@ public class CalendarDayPanel : Panel
         _isLocalDragOwner = false;
         _isDragging = false;
 
+        if (_controlCache.TryGetValue(state.Event.Id, out var child))
+            child.Cursor = Cursor.Default;
+
         if (OnDropCompleted is not null)
             _ = OnDropCompleted(state);
     }
@@ -377,6 +437,9 @@ public class CalendarDayPanel : Panel
             state.Event.StartUtc = state.OriginalStartUtc;
             state.Event.EndUtc = state.OriginalEndUtc;
             state.Event.DragOpacity = 1.0;
+
+            if (_controlCache.TryGetValue(state.Event.Id, out var child))
+                child.Cursor = Cursor.Default;
         }
 
         DragState = null;

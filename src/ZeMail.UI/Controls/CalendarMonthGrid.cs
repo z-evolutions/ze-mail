@@ -15,7 +15,7 @@ namespace ZeMail.UI.Controls;
 
 /// <summary>
 /// Custom Panel für die Monatsansicht: 42 Tageszellen (6x7-Grid).
-/// Jede Zelle zeigt Tagesnummer + Events. Events können per Drag
+/// Jede Zelle zeigt Tagesnummer + Events. Events können per Drag 
 /// auf eine andere Zelle gezogen werden (Datum ändern, Uhrzeit bleibt).
 /// </summary>
 public class CalendarMonthGrid : Panel
@@ -62,6 +62,9 @@ public class CalendarMonthGrid : Panel
     private const double HeaderHeight = 28.0;
     private const double EventRowHeight = 18.0;
     private const double TapThreshold = 5.0;
+
+    // Hand-Cursor wird einmalig gecacht statt bei jedem Hover neu erzeugt
+    private static readonly Cursor MoveCursor = new(StandardCursorType.Hand);
 
     // ── Interne Felder ───────────────────────────────────────────────────
     private readonly Dictionary<DateTime, Border> _cellControls = new();
@@ -212,6 +215,11 @@ public class CalendarMonthGrid : Panel
 
     private void AttachEventPointerHandlers(Control control, CalendarEventViewModel ev, CalendarDayViewModel day)
     {
+        // Events sind in der Monatsansicht ausschließlich verschiebbar (kein Resize
+        // per Press-Position wie in Tag/Woche) → Hand-Cursor ist hier immer korrekt,
+        // unabhängig von Hover-Position innerhalb des Controls.
+        control.Cursor = MoveCursor;
+
         control.PointerPressed += (_, e) => OnEventPointerPressed(control, ev, day, e);
         control.PointerMoved += (_, e) => OnEventPointerMoved(ev, e);
         control.PointerReleased += (_, e) => OnEventPointerReleased(ev, e);

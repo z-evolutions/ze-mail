@@ -80,6 +80,7 @@ public class CalendarMonthGrid : Panel
     private DateTime _currentHoverDate;
     private Point _pressPosition;
     private bool _isDragging;
+    private int _lastPressClickCount;
     private Border? _highlightOverlay;
 
     // ── Statische Initialisierung ────────────────────────────────────────
@@ -232,6 +233,7 @@ public class CalendarMonthGrid : Panel
 
         _pressPosition = e.GetPosition(this);
         _isDragging = false;
+        _lastPressClickCount = e.ClickCount;
 
         _activeDrag = new MonthDragState
         {
@@ -285,9 +287,10 @@ public class CalendarMonthGrid : Panel
 
         if (!_isDragging)
         {
-            // Tap → Edit öffnen
+            // Tap → nur bei Doppelklick Edit öffnen
             _activeDrag = null;
-            EditRequested?.Invoke(ev);
+            if (_lastPressClickCount >= 2)
+                EditRequested?.Invoke(ev);
             e.Handled = true;
             return;
         }

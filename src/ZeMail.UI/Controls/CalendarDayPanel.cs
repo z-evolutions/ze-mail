@@ -78,6 +78,7 @@ public class CalendarDayPanel : Panel
     private Border? _ghostOverlay;
     private Point _pressPosition;
     private bool _isDragging;
+    private int _lastPressClickCount;
 
     private const double TapThreshold = 5.0;
     private const double ResizeHandleSize = 8.0;
@@ -195,6 +196,7 @@ public class CalendarDayPanel : Panel
 
         _pressPosition = e.GetPosition(this);
         _isDragging = false;
+        _lastPressClickCount = e.ClickCount;
 
         if (ev.IsAllDay)
         {
@@ -212,10 +214,6 @@ public class CalendarDayPanel : Panel
             mode = DragMode.ResizeBottom;
         else
             mode = DragMode.Move;
-
-        // Cursor sofort beim Press auf den aktiven Modus fixieren, damit er
-        // während des gesamten Drags stabil bleibt (kein Flackern durch Hover-Logik)
-        child.Cursor = CursorForMode(mode);
 
         var state = new CalendarEventDragState
         {
@@ -248,6 +246,13 @@ public class CalendarDayPanel : Panel
             // Tagesansicht: Panel captured selbst
             e.Pointer.Capture(child);
         }
+
+        // Cursor erst NACH dem Capture setzen: Cursor-Zuweisung kann in Avalonia
+        // einen Re-Hit-Test/Capture-Reset auslösen. Wird sie vor dem Capture
+        // ausgeführt, kann das frisch gesetzte Capture (insb. in der Wochenansicht,
+        // wo CalendarWeekGrid das Capture auf sich selbst umbiegt) sofort wieder
+        // invalidiert werden – das hat zuvor das Resize in der Wochenansicht gebrochen.
+        child.Cursor = CursorForMode(mode);
 
         e.Handled = true;
     }
@@ -298,7 +303,8 @@ public class CalendarDayPanel : Panel
         {
             DragState = null;
             _isLocalDragOwner = false;
-            EditRequested?.Invoke(ev);
+            if (_lastPressClickCount >= 2)
+                EditRequested?.Invoke(ev);
             e.Handled = true;
             return;
         }

@@ -43,6 +43,16 @@ public class CalendarWeekGrid : Panel
     private bool _pointerHandlersAttached = false;
     private ObservableCollection<CalendarDayViewModel>? _subscribedCollection;
 
+    // Tap-vs-Drag-Unterscheidung auf Grid-Ebene: sobald CalendarDayPanel das
+    // Capture per DragStartedCallback an das Grid übergibt, laufen alle
+    // weiteren PointerMoved/Released-Events hier auf und erreichen das Panel
+    // nicht mehr. Ohne diese eigene Schwellenwert-Prüfung würde ein reiner Klick
+    // (kein Drag) hier fälschlich als Drop committed statt als Edit-Tap behandelt.
+    private Point _gridPressPosition;
+    private bool _isGridDragging;
+    private int _lastGridClickCount;
+    private const double GridTapThreshold = 5.0;
+
     // ── Statische Initialisierung ────────────────────────────────────────
 
     static CalendarWeekGrid()
@@ -125,6 +135,9 @@ public class CalendarWeekGrid : Panel
     {
         _activeDrag = state;
         _currentDragColumn = colIndex;
+        _gridPressPosition = pressArgs.GetPosition(this);
+        _isGridDragging = false;
+        _lastGridClickCount = pressArgs.ClickCount;
 
         pressArgs.Pointer.Capture(this);
     }
@@ -140,6 +153,20 @@ public class CalendarWeekGrid : Panel
         }
 
         var posInGrid = e.GetPosition(this);
+
+        if (!_isGridDragging)
+        {
+            var delta = posInGrid - _gridPressPosition;
+            if (Math.Abs(delta.X) < GridTapThreshold && Math.Abs(delta.Y) < GridTapThreshold)
+            {
+                e.Handled = true;
+                return;
+            }
+
+            _isGridDragging = true;
+            _activeDrag.Event.DragOpacity = 0.35;
+        }
+
         var newColIdx = GetColumnAtX(posInGrid.X);
 
         if (newColIdx < 0 || newColIdx >= _columns.Length || _columns[newColIdx] is null)
@@ -188,6 +215,22 @@ public class CalendarWeekGrid : Panel
         if (_activeDrag is null) return;
 
         var state = _activeDrag;
+
+        // Kein Drag stattgefunden (Klick blieb unter dem Schwellenwert) →
+        // kein Drop, sondern höchstens ein Edit-Tap bei Doppelklick.
+        // Ohne diese Unterscheidung würde jeder einfache Klick hier als
+        // "Drop auf Originalposition" durchlaufen und den Editor nie öffnen.
+        if (!_isGridDragging)
+        {
+            _activeDrag = null;
+            _currentDragColumn = -1;
+
+            if (_lastGridClickCount >= 2)
+                EditRequested?.Invoke(state.Event);
+
+            e.Handled = true;
+            return;
+        }
 
         // Spaltenwechsel beim Drop nur für Move neu berechnen. Bei ResizeTop/
         // ResizeBottom hat CalendarDayPanel.UpdateDragPreview bereits die

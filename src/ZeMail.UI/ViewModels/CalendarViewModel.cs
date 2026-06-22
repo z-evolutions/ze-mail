@@ -19,10 +19,10 @@ public enum CalendarViewMode { Month, Week, Day }
 
 public partial class CalendarSidebarItem : ObservableObject
 {
-    public Guid   Id       { get; init; } 
-    public string Name     { get; init; } = string.Empty;
-    public string Color    { get; init; } = "#3a3aff";
-    public bool   IsCalDav { get; init; }
+    public Guid Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string Color { get; init; } = "#3a3aff";
+    public bool IsCalDav { get; init; }
 
     [ObservableProperty] private bool _isVisible = true;
 }
@@ -32,8 +32,8 @@ public partial class CalendarViewModel : ViewModelBase
     [ObservableProperty] private CalendarViewMode _viewMode = CalendarViewMode.Month;
 
     public bool IsMonthView => ViewMode == CalendarViewMode.Month;
-    public bool IsWeekView  => ViewMode == CalendarViewMode.Week;
-    public bool IsDayView   => ViewMode == CalendarViewMode.Day;
+    public bool IsWeekView => ViewMode == CalendarViewMode.Week;
+    public bool IsDayView => ViewMode == CalendarViewMode.Day;
 
     partial void OnViewModeChanged(CalendarViewMode value)
     {
@@ -44,20 +44,20 @@ public partial class CalendarViewModel : ViewModelBase
         _ = LoadEventsAsync();
     }
 
-    [ObservableProperty] private DateTime _currentMonth     = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    [ObservableProperty] private DateTime _currentMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
     [ObservableProperty] private DateTime _currentWeekStart = DateTime.Today.AddDays(-(((int)DateTime.Today.DayOfWeek + 6) % 7));
-    [ObservableProperty] private DateTime _currentDay       = DateTime.Today;
-    [ObservableProperty] private string   _currentPeriodLabel = string.Empty;
-    [ObservableProperty] private double   _currentTimeOffset  = 0;
-    [ObservableProperty] private bool     _showCurrentTimeLine = false;
+    [ObservableProperty] private DateTime _currentDay = DateTime.Today;
+    [ObservableProperty] private string _currentPeriodLabel = string.Empty;
+    [ObservableProperty] private double _currentTimeOffset = 0;
+    [ObservableProperty] private bool _showCurrentTimeLine = false;
 
     private Timer? _clockTimer;
     private Timer? _refreshTimer;
-    private int    _refreshIntervalMinutes = 1;
+    private int _refreshIntervalMinutes = 1;
 
-    public ObservableCollection<CalendarDayViewModel>   Days       { get; } = [];
-    public ObservableCollection<CalendarDayViewModel>   WeekDays   { get; } = [];
-    public ObservableCollection<CalendarSidebarItem>    Calendars  { get; } = [];
+    public ObservableCollection<CalendarDayViewModel> Days { get; } = [];
+    public ObservableCollection<CalendarDayViewModel> WeekDays { get; } = [];
+    public ObservableCollection<CalendarSidebarItem> Calendars { get; } = [];
     public ObservableCollection<string> WeekDayHeaders { get; } =
         ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
@@ -68,12 +68,14 @@ public partial class CalendarViewModel : ViewModelBase
 
     [ObservableProperty] private string _statusText = string.Empty;
 
-    // Callback für Drag-Drop aus Controls
+    // Callbacks für Drag-Drop aus Controls
     public Func<CalendarEventDragState, Task> DropCompletedHandler { get; }
+    public Func<MonthDragState, Task> MonthDropCompletedHandler { get; }
 
     public CalendarViewModel()
     {
         DropCompletedHandler = UpdateEventAfterDragAsync;
+        MonthDropCompletedHandler = UpdateEventAfterMonthDragAsync;
 
         for (int h = 0; h < 24; h++)
             HourLabels.Add($"{h:00}:00");
@@ -103,16 +105,16 @@ public partial class CalendarViewModel : ViewModelBase
         var now = DateTime.Now;
         Dispatcher.UIThread.Post(() =>
         {
-            CurrentTimeOffset   = now.Hour * 60.0 + now.Minute;
+            CurrentTimeOffset = now.Hour * 60.0 + now.Minute;
             ShowCurrentTimeLine = true;
         });
     }
 
-    // ── Drag & Drop ──────────────────────────────────────────────────────
+    // ── Drag & Drop (Tag/Woche) ──────────────────────────────────────────
 
     /// <summary>
-    /// Wird nach erfolgreichem Drop aufgerufen.
-    /// Aktualisiert DB via ICalendarService + löst UI-Refresh aus.
+    /// Wird nach erfolgreichem Drop in Tag- oder Wochenansicht aufgerufen.
+    /// Aktualisiert DB via IZeMailDbContext + pusht zu CalDAV falls relevant.
     /// </summary>
     private async Task UpdateEventAfterDragAsync(CalendarEventDragState state)
     {
@@ -174,6 +176,74 @@ public partial class CalendarViewModel : ViewModelBase
         await LoadEventsAsync();
     }
 
+    // ── Drag & Drop (Monat) ──────────────────────────────────────────────
+
+    /// <summary>
+    /// Wird nach erfolgreichem Drop in der Monatsansicht aufgerufen.
+    /// Nur das Datum ändert sich (Zelle gewechselt), die Uhrzeit wurde
+    /// bereits im CalendarMonthGrid-Control auf StartUtc/EndUtc übernommen.
+    /// </summary>
+    private async Task UpdateEventAfterMonthDragAsync(MonthDragState state)
+    {
+        if (App.Services is null) return;
+
+        try
+        {
+            StatusText = "Termin wird gespeichert…";
+
+            using var scope = App.Services.CreateScope();
+            var db = scope.ServiceProvider
+                          .GetRequiredService<ZeMail.Core.Interfaces.IZeMailDbContext>();
+
+            var entity = await Task.Run(() =>
+                db.CalendarEvents.FirstOrDefault(e => e.Id == state.Event.Id));
+
+            if (entity is null)
+            {
+                StatusText = "Fehler: Termin nicht gefunden.";
+                return;
+            }
+
+            entity.StartUtc = state.Event.StartUtc;
+            entity.EndUtc = state.Event.EndUtc;
+            entity.UpdatedAtUtc = DateTime.UtcNow;
+
+            await db.SaveChangesAsync();
+
+            if (entity.CalendarId.HasValue)
+            {
+                var calendar = await Task.Run(() =>
+                    db.Calendars.FirstOrDefault(c => c.Id == entity.CalendarId.Value));
+
+                if (calendar?.Type == ZeMail.Core.Entities.CalendarType.CalDav)
+                {
+                    entity.Calendar = calendar;
+
+                    var syncService = scope.ServiceProvider
+                                            .GetRequiredService<ZeMail.Core.Interfaces.ICalendarSyncService>();
+                    await syncService.PushEventAsync(entity);
+                }
+            }
+
+            StatusText = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Fehler beim Speichern: {ex.Message}";
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                var duration = state.Event.EndUtc - state.Event.StartUtc;
+                var revertedStart = state.OriginalDate.Date.Add(state.Event.StartUtc.ToLocalTime().TimeOfDay);
+                state.Event.StartUtc = revertedStart.ToUniversalTime();
+                state.Event.EndUtc = state.Event.StartUtc.Add(duration);
+            });
+        }
+
+        await Task.Delay(300);
+        await LoadEventsAsync();
+    }
+
     // ── Kalender-Sidebar ─────────────────────────────────────────────────
 
     private void LoadCalendars()
@@ -187,10 +257,10 @@ public partial class CalendarViewModel : ViewModelBase
         {
             Calendars.Add(new CalendarSidebarItem
             {
-                Id        = c.Id,
-                Name      = c.Name,
-                Color     = c.Color,
-                IsCalDav  = c.Type == CalendarType.CalDav,
+                Id = c.Id,
+                Name = c.Name,
+                Color = c.Color,
+                IsCalDav = c.Type == CalendarType.CalDav,
                 IsVisible = c.IsVisible
             });
         }
@@ -214,7 +284,7 @@ public partial class CalendarViewModel : ViewModelBase
         var entity = Task.Run(() => db.Calendars.FirstOrDefault(c => c.Id == item.Id)).Result;
         if (entity is null) return;
         entity.IsVisible = !entity.IsVisible;
-        item.IsVisible   = entity.IsVisible;
+        item.IsVisible = entity.IsVisible;
         await db.SaveChangesAsync();
         await LoadEventsAsync();
     }
@@ -222,17 +292,17 @@ public partial class CalendarViewModel : ViewModelBase
     // ── Navigation ───────────────────────────────────────────────────────
 
     [RelayCommand] private void SetMonthView() => ViewMode = CalendarViewMode.Month;
-    [RelayCommand] private void SetWeekView()  => ViewMode = CalendarViewMode.Week;
-    [RelayCommand] private void SetDayView()   => ViewMode = CalendarViewMode.Day;
+    [RelayCommand] private void SetWeekView() => ViewMode = CalendarViewMode.Week;
+    [RelayCommand] private void SetDayView() => ViewMode = CalendarViewMode.Day;
 
     [RelayCommand]
     private void Previous()
     {
         switch (ViewMode)
         {
-            case CalendarViewMode.Month: CurrentMonth     = CurrentMonth.AddMonths(-1);   break;
-            case CalendarViewMode.Week:  CurrentWeekStart = CurrentWeekStart.AddDays(-7); break;
-            case CalendarViewMode.Day:   CurrentDay       = CurrentDay.AddDays(-1);       break;
+            case CalendarViewMode.Month: CurrentMonth = CurrentMonth.AddMonths(-1); break;
+            case CalendarViewMode.Week: CurrentWeekStart = CurrentWeekStart.AddDays(-7); break;
+            case CalendarViewMode.Day: CurrentDay = CurrentDay.AddDays(-1); break;
         }
         BuildCalendar();
         _ = LoadEventsAsync();
@@ -243,9 +313,9 @@ public partial class CalendarViewModel : ViewModelBase
     {
         switch (ViewMode)
         {
-            case CalendarViewMode.Month: CurrentMonth     = CurrentMonth.AddMonths(1);   break;
-            case CalendarViewMode.Week:  CurrentWeekStart = CurrentWeekStart.AddDays(7); break;
-            case CalendarViewMode.Day:   CurrentDay       = CurrentDay.AddDays(1);       break;
+            case CalendarViewMode.Month: CurrentMonth = CurrentMonth.AddMonths(1); break;
+            case CalendarViewMode.Week: CurrentWeekStart = CurrentWeekStart.AddDays(7); break;
+            case CalendarViewMode.Day: CurrentDay = CurrentDay.AddDays(1); break;
         }
         BuildCalendar();
         _ = LoadEventsAsync();
@@ -254,9 +324,9 @@ public partial class CalendarViewModel : ViewModelBase
     [RelayCommand]
     private void GoToToday()
     {
-        CurrentMonth     = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        CurrentMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
         CurrentWeekStart = DateTime.Today.AddDays(-(((int)DateTime.Today.DayOfWeek + 6) % 7));
-        CurrentDay       = DateTime.Today;
+        CurrentDay = DateTime.Today;
         BuildCalendar();
         _ = LoadEventsAsync();
     }
@@ -266,7 +336,7 @@ public partial class CalendarViewModel : ViewModelBase
     {
         if (day is null) return;
         if (SelectedDay is not null) SelectedDay.IsSelected = false;
-        SelectedDay    = day;
+        SelectedDay = day;
         day.IsSelected = true;
         SelectedDayEvents.Clear();
         foreach (var ev in day.Events)
@@ -290,8 +360,8 @@ public partial class CalendarViewModel : ViewModelBase
         switch (ViewMode)
         {
             case CalendarViewMode.Month: BuildMonthCalendar(); break;
-            case CalendarViewMode.Week:  BuildWeekCalendar();  break;
-            case CalendarViewMode.Day:   BuildDayCalendar();   break;
+            case CalendarViewMode.Week: BuildWeekCalendar(); break;
+            case CalendarViewMode.Day: BuildDayCalendar(); break;
         }
     }
 
@@ -301,7 +371,7 @@ public partial class CalendarViewModel : ViewModelBase
         Days.Clear();
         CurrentPeriodLabel = CurrentMonth.ToString("MMMM yyyy");
 
-        var firstDay  = CurrentMonth;
+        var firstDay = CurrentMonth;
         var startDate = firstDay.AddDays(-(((int)firstDay.DayOfWeek + 6) % 7));
 
         for (int i = 0; i < 42; i++)
@@ -309,10 +379,10 @@ public partial class CalendarViewModel : ViewModelBase
             var date = startDate.AddDays(i);
             Days.Add(new CalendarDayViewModel
             {
-                Date           = date,
-                IsToday        = date.Date == DateTime.Today,
+                Date = date,
+                IsToday = date.Date == DateTime.Today,
                 IsCurrentMonth = date.Month == CurrentMonth.Month,
-                IsSelected     = date.Date == DateTime.Today && date.Month == CurrentMonth.Month
+                IsSelected = date.Date == DateTime.Today && date.Month == CurrentMonth.Month
             });
         }
         SelectedDay = Days.FirstOrDefault(d => d.IsSelected);
@@ -322,7 +392,7 @@ public partial class CalendarViewModel : ViewModelBase
     {
         Days.Clear();
         WeekDays.Clear();
-        var kw      = ISOWeek.GetWeekOfYear(CurrentWeekStart);
+        var kw = ISOWeek.GetWeekOfYear(CurrentWeekStart);
         var weekEnd = CurrentWeekStart.AddDays(6);
         CurrentPeriodLabel = $"KW {kw} · {CurrentWeekStart:dd. MMM} – {weekEnd:dd. MMM yyyy}";
 
@@ -331,10 +401,10 @@ public partial class CalendarViewModel : ViewModelBase
             var date = CurrentWeekStart.AddDays(i);
             WeekDays.Add(new CalendarDayViewModel
             {
-                Date           = date,
-                IsToday        = date.Date == DateTime.Today,
+                Date = date,
+                IsToday = date.Date == DateTime.Today,
                 IsCurrentMonth = true,
-                IsSelected     = date.Date == DateTime.Today
+                IsSelected = date.Date == DateTime.Today
             });
         }
         SelectedDay = WeekDays.FirstOrDefault(d => d.IsSelected) ?? WeekDays[0];
@@ -348,10 +418,10 @@ public partial class CalendarViewModel : ViewModelBase
         CurrentPeriodLabel = $"KW {kw} · {CurrentDay:dddd, dd. MMMM yyyy}";
         WeekDays.Add(new CalendarDayViewModel
         {
-            Date           = CurrentDay,
-            IsToday        = CurrentDay.Date == DateTime.Today,
+            Date = CurrentDay,
+            IsToday = CurrentDay.Date == DateTime.Today,
             IsCurrentMonth = true,
-            IsSelected     = true
+            IsSelected = true
         });
         SelectedDay = WeekDays[0];
     }
@@ -404,7 +474,7 @@ public partial class CalendarViewModel : ViewModelBase
             {
                 foreach (var ev in columns[ci])
                 {
-                    ev.LeftFraction  = (double)ci / totalCols;
+                    ev.LeftFraction = (double)ci / totalCols;
                     ev.WidthFraction = 1.0 / totalCols;
                 }
             }
@@ -428,10 +498,10 @@ public partial class CalendarViewModel : ViewModelBase
             if (!allDays.Any()) return;
 
             var fromUtc = allDays.Min(d => d.Date).ToUniversalTime();
-            var toUtc   = allDays.Max(d => d.Date).AddDays(1).ToUniversalTime();
+            var toUtc = allDays.Max(d => d.Date).AddDays(1).ToUniversalTime();
 
             var allCalendars = await Task.Run(() => db.Calendars.ToList());
-            var calendarColors     = allCalendars.ToDictionary(c => c.Id, c => c.Color);
+            var calendarColors = allCalendars.ToDictionary(c => c.Id, c => c.Color);
             var visibleCalendarIds = allCalendars
                 .Where(c => c.IsVisible)
                 .Select(c => c.Id)
@@ -439,7 +509,7 @@ public partial class CalendarViewModel : ViewModelBase
 
             var defaultCalendar = allCalendars.FirstOrDefault(c => c.IsDefault)
                                 ?? allCalendars.FirstOrDefault();
-            var defaultColor   = defaultCalendar?.Color ?? "#5AC8FA";
+            var defaultColor = defaultCalendar?.Color ?? "#5AC8FA";
             var defaultVisible = defaultCalendar is null || visibleCalendarIds.Contains(defaultCalendar.Id);
 
             var events = await Task.Run(() =>
@@ -451,6 +521,7 @@ public partial class CalendarViewModel : ViewModelBase
                            ))
                   .ToList());
 
+            // UI-Updates auf dem UI-Thread ausführen
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 foreach (var day in allDays) day.Events.Clear();
@@ -466,13 +537,13 @@ public partial class CalendarViewModel : ViewModelBase
 
                     day.Events.Add(new CalendarEventViewModel
                     {
-                        Id         = ev.Id,
-                        Title      = ev.Title,
-                        Location   = ev.Location,
-                        StartUtc   = ev.StartUtc,
-                        EndUtc     = ev.EndUtc,
-                        IsAllDay   = ev.IsAllDay,
-                        Color      = color,
+                        Id = ev.Id,
+                        Title = ev.Title,
+                        Location = ev.Location,
+                        StartUtc = ev.StartUtc,
+                        EndUtc = ev.EndUtc,
+                        IsAllDay = ev.IsAllDay,
+                        Color = color,
                         CalendarId = ev.CalendarId,
                     });
                 }
@@ -515,13 +586,13 @@ public partial class CalendarViewModel : ViewModelBase
 
         if (existing is null)
         {
-            var now      = DateTime.Now;
+            var now = DateTime.Now;
             int totalMin = now.Hour * 60 + now.Minute;
-            int snapped  = (int)Math.Ceiling((double)totalMin / stepMinutes) * stepMinutes;
+            int snapped = (int)Math.Ceiling((double)totalMin / stepMinutes) * stepMinutes;
             if (snapped >= 24 * 60) snapped = 23 * 60;
 
             var startTime = TimeSpan.FromMinutes(snapped);
-            var endTime   = startTime.Add(TimeSpan.FromMinutes(stepMinutes));
+            var endTime = startTime.Add(TimeSpan.FromMinutes(stepMinutes));
             if (endTime.TotalMinutes >= 24 * 60)
                 endTime = TimeSpan.FromHours(23).Add(TimeSpan.FromMinutes(45));
 
@@ -529,7 +600,7 @@ public partial class CalendarViewModel : ViewModelBase
             {
                 AccountId = account.Id,
                 StartDate = date.Date,
-                EndDate   = date.Date,
+                EndDate = date.Date,
             };
             vm.InitTimeSlots(stepMinutes);
             vm.SetStartTime(startTime);
@@ -542,13 +613,13 @@ public partial class CalendarViewModel : ViewModelBase
 
             vm = new EventEditorViewModel
             {
-                EventId   = existing.Id,
+                EventId = existing.Id,
                 AccountId = account.Id,
-                Title     = existing.Title,
-                Location  = existing.Location ?? string.Empty,
+                Title = existing.Title,
+                Location = existing.Location ?? string.Empty,
                 StartDate = existing.StartUtc.ToLocalTime().Date,
-                EndDate   = existing.EndUtc.ToLocalTime().Date,
-                IsAllDay  = existing.IsAllDay,
+                EndDate = existing.EndUtc.ToLocalTime().Date,
+                IsAllDay = existing.IsAllDay,
             };
             vm.InitTimeSlots(stepMinutes);
             vm.SetStartTime(existing.StartUtc.ToLocalTime().TimeOfDay);
@@ -557,8 +628,8 @@ public partial class CalendarViewModel : ViewModelBase
         }
 
         var win = new EventEditorWindow { DataContext = vm };
-        vm.OnSaved     += () => { win.Close(); _ = LoadEventsAsync(); };
-        vm.OnDeleted   += () => { win.Close(); _ = LoadEventsAsync(); };
+        vm.OnSaved += () => { win.Close(); _ = LoadEventsAsync(); };
+        vm.OnDeleted += () => { win.Close(); _ = LoadEventsAsync(); };
         vm.OnCancelled += () => win.Close();
         win.Show();
     }

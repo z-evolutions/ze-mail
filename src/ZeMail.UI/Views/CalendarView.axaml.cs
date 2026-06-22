@@ -15,10 +15,14 @@ public partial class CalendarView : UserControl
     {
         if (DataContext is not CalendarViewModel vm) return;
 
-        DayPanel.OnDropCompleted  = vm.DropCompletedHandler;
-        DayPanel.EditRequested    = vm.EditEventCommand.Execute;
+        DayPanel.OnDropCompleted = vm.DropCompletedHandler;
+        DayPanel.EditRequested = vm.EditEventCommand.Execute;
 
-        WeekGrid.OnDropCompleted  = vm.DropCompletedHandler;
-        WeekGrid.EditRequested    = ev => vm.EditEventCommand.Execute(ev);
+        WeekGrid.OnDropCompleted = vm.DropCompletedHandler;
+        WeekGrid.EditRequested = ev => vm.EditEventCommand.Execute(ev);
+
+        MonthGrid.OnDropCompleted = vm.MonthDropCompletedHandler;
+        MonthGrid.EditRequested = ev => vm.EditEventCommand.Execute(ev);
+        MonthGrid.DaySelected = day => vm.SelectDayCommand.Execute(day);
     }
 }
